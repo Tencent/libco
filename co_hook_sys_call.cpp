@@ -91,6 +91,9 @@ typedef struct tm *(*localtime_r_pfn_t)( const time_t *timep, struct tm *result 
 typedef void *(*pthread_getspecific_pfn_t)(pthread_key_t key);
 typedef int (*pthread_setspecific_pfn_t)(pthread_key_t key, const void *value);
 
+typedef int (*setenv_pfn_t)(const char *name, const char *value, int overwrite);
+typedef int (*unsetenv_pfn_t)(const char *name);
+typedef char *(*getenv_pfn_t)(const char *name);
 typedef hostent* (*gethostbyname_pfn_t)(const char *name);
 typedef res_state (*__res_state_pfn_t)();
 typedef int (*__poll_pfn_t)(struct pollfd fds[], nfds_t nfds, int timeout);
@@ -114,6 +117,9 @@ static setsockopt_pfn_t g_sys_setsockopt_func
 										= (setsockopt_pfn_t)dlsym(RTLD_NEXT,"setsockopt");
 static fcntl_pfn_t g_sys_fcntl_func 	= (fcntl_pfn_t)dlsym(RTLD_NEXT,"fcntl");
 
+static setenv_pfn_t g_sys_setenv_func   = (setenv_pfn_t)dlsym(RTLD_NEXT,"setenv");
+static unsetenv_pfn_t g_sys_unsetenv_func = (unsetenv_pfn_t)dlsym(RTLD_NEXT,"unsetenv");
+static getenv_pfn_t g_sys_getenv_func   =  (getenv_pfn_t)dlsym(RTLD_NEXT,"getenv");
 static __res_state_pfn_t g_sys___res_state_func  = (__res_state_pfn_t)dlsym(RTLD_NEXT,"__res_state");
 
 static gethostbyname_pfn_t g_sys_gethostbyname_func = (gethostbyname_pfn_t)dlsym(RTLD_NEXT, "gethostbyname");
@@ -638,6 +644,164 @@ int fcntl(int fildes, int cmd, ...)
 	va_end( arg_list );
 
 	return ret;
+}
+
+struct stCoSysEnv_t
+{
+	char *name;	
+	char *value;
+};
+struct stCoSysEnvArr_t
+{
+	stCoSysEnv_t *data;
+	size_t cnt;
+};
+static stCoSysEnvArr_t *dup_co_sysenv_arr( stCoSysEnvArr_t * arr )
+{
+	stCoSysEnvArr_t *lp = (stCoSysEnvArr_t*)calloc( sizeof(stCoSysEnvArr_t),1 );	
+	if( arr->cnt )
+	{
+		lp->data = (stCoSysEnv_t*)calloc( sizeof(stCoSysEnv_t) * arr->cnt,1 );
+		lp->cnt = arr->cnt;
+		memcpy( lp->data,arr->data,sizeof( stCoSysEnv_t ) * arr->cnt );
+	}
+	return lp;
+}
+
+static int co_sysenv_comp(const void *a, const void *b)
+{
+	return strcmp(((stCoSysEnv_t*)a)->name, ((stCoSysEnv_t*)b)->name); 
+}
+static stCoSysEnvArr_t g_co_sysenv = { 0 };
+
+
+  
+void co_set_env_list( const char *name[],size_t cnt)
+{
+	if( g_co_sysenv.data )
+	{
+		return ;
+	}
+	g_co_sysenv.data = (stCoSysEnv_t*)calloc( 1,sizeof(stCoSysEnv_t) * cnt  );
+
+	for(size_t i=0;i<cnt;i++)
+	{
+		if( name[i] && name[i][0] )
+		{
+			g_co_sysenv.data[ g_co_sysenv.cnt++ ].name = strdup( name[i] );
+		}
+	}
+	if( g_co_sysenv.cnt > 1 )
+	{
+		qsort( g_co_sysenv.data,g_co_sysenv.cnt,sizeof(stCoSysEnv_t),co_sysenv_comp );
+		stCoSysEnv_t *lp = g_co_sysenv.data;
+		stCoSysEnv_t *lq = g_co_sysenv.data + 1;
+		for(size_t i=1;i<g_co_sysenv.cnt;i++)
+		{
+			if( strcmp( lp->name,lq->name ) )
+			{
+				++lp;
+				if( lq != lp  )
+				{
+					*lp = *lq;
+				}
+			}
+			++lq;
+		}
+		g_co_sysenv.cnt = lp - g_co_sysenv.data + 1;
+	}
+
+}
+
+int setenv(const char *n, const char *value, int overwrite)
+{
+	HOOK_SYS_FUNC( setenv )
+	if( co_is_enable_sys_hook() && g_co_sysenv.data )
+	{
+		stCoRoutine_t *self = co_self();
+		if( self )
+		{
+			if( !self->pvEnv )
+			{
+				self->pvEnv = dup_co_sysenv_arr( &g_co_sysenv );
+			}
+			stCoSysEnvArr_t *arr = (stCoSysEnvArr_t*)(self->pvEnv);
+
+			stCoSysEnv_t name = { (char*)n,0 };
+
+			stCoSysEnv_t *e = (stCoSysEnv_t*)bsearch( &name,arr->data,arr->cnt,sizeof(name),co_sysenv_comp );
+
+			if( e )
+			{
+				if( overwrite || !e->value  )
+				{
+					if( e->value ) free( e->value );
+					e->value = ( value ? strdup( value ) : 0 );
+				}
+				return 0;
+			}
+		}
+
+	}
+	return g_sys_setenv_func( n,value,overwrite );
+}
+int unsetenv(const char *n)
+{
+	HOOK_SYS_FUNC( unsetenv )
+	if( co_is_enable_sys_hook() && g_co_sysenv.data )
+	{
+		stCoRoutine_t *self = co_self();
+		if( self )
+		{
+			if( !self->pvEnv )
+			{
+				self->pvEnv = dup_co_sysenv_arr( &g_co_sysenv );
+			}
+			stCoSysEnvArr_t *arr = (stCoSysEnvArr_t*)(self->pvEnv);
+
+			stCoSysEnv_t name = { (char*)n,0 };
+
+			stCoSysEnv_t *e = (stCoSysEnv_t*)bsearch( &name,arr->data,arr->cnt,sizeof(name),co_sysenv_comp );
+
+			if( e )
+			{
+				if( e->value )
+				{
+					free( e->value );
+					e->value = 0;
+				}
+				return 0;
+			}
+		}
+
+	}
+	return g_sys_unsetenv_func( n );
+}
+char *getenv( const char *n )
+{
+	HOOK_SYS_FUNC( getenv )
+	if( co_is_enable_sys_hook() && g_co_sysenv.data )
+	{
+		stCoRoutine_t *self = co_self();
+
+		stCoSysEnv_t name = { (char*)n,0 };
+
+		if( !self->pvEnv )
+		{
+			self->pvEnv = dup_co_sysenv_arr( &g_co_sysenv );
+		}
+		stCoSysEnvArr_t *arr = (stCoSysEnvArr_t*)(self->pvEnv);
+
+		stCoSysEnv_t *e = (stCoSysEnv_t*)bsearch( &name,arr->data,arr->cnt,sizeof(name),co_sysenv_comp );
+
+		if( e )
+		{
+			return e->value;
+		}
+
+	}
+	return g_sys_getenv_func( n );
+
 }
 
 struct res_state_wrap

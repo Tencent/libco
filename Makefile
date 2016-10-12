@@ -45,13 +45,10 @@ libcolib.so: $(COLIB_OBJS)
 
 example_echosvr:example_echosvr.o
 	$(BUILDEXE) 
-
 example_echocli:example_echocli.o
 	$(BUILDEXE) 
-
 example_thread:example_thread.o
 	$(BUILDEXE) 
-
 example_poll:example_poll.o
 	$(BUILDEXE) 
 example_exit:example_exit.o
@@ -61,6 +58,8 @@ example_cond:example_cond.o
 example_specific:example_specific.o
 	$(BUILDEXE)
 example_copystack:example_copystack.o
+	$(BUILDEXE)
+example_setenv:example_setenv.o
 	$(BUILDEXE)
 
 dist: clean libco-$(version).src.tar.gz

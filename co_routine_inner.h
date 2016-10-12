@@ -59,6 +59,8 @@ struct stCoRoutine_t
 	char cEnableSysHook;
 	char cIsShareStack;
 
+	void *pvEnv;
+
 	//char sRunStack[ 1024 * 128 ];
 	stStackMem_t* stack_mem;
 

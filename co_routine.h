@@ -84,6 +84,9 @@ int co_cond_timedwait( stCoCond_t *,int timeout_ms );
 //7.share stack
 stShareStack_t* co_alloc_sharestack(int iCount, int iStackSize);
 
+//8.init envlist for hook get/set env
+void co_set_env_list( const char *name[],size_t cnt);
+
 void co_log_err( const char *fmt,... );
 #endif
 
