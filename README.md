@@ -6,7 +6,7 @@ By linking with libco, you can easily transform synchronous back-end service int
 
 You can also use co_create/co_resume/co_yield function for asynchronous back-end service, which give you more control of when should I switch between co-routine.
 
-libco has been used in WeChat since 2013, running on tens of thousands of machines. With libco, you can easily build a backend service suport millions tcp connection.
+libco has been used in WeChat since 2013, running on tens of thousands of machines. With libco, you can easily build a backend service suport tens of millions tcp connection.
 ***
 ##libco是微信后台大规模使用的c/c++协程库，2013年至今稳定运行在微信后台的数万台机器上。
 作者: sunnyxu(sunnyxu@tencent.com), leiffyli(leiffyli@tencent.com), dengoswei@gmail.com(dengoswei@tencent.com), sarlmolchen(sarlmolchen@tencent.com)
