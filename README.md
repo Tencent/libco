@@ -1,3 +1,11 @@
+##libco is a c/c++ coroutine library that widely used in WeChat services.
+
+Author: sunnyxu(sunnyxu@tencent.com), leiffyli(leiffyli@tencent.com), dengoswei@gmail.com(dengoswei@tencent.com), sarlmolchen(sarlmolchen@tencent.com)
+
+By linking with libco, you can easily transform synchronous back-end service into co-routine service, which provide out-standing concurrency compare to multi-thread approach. You get both happy coding in synchronous way and performance improve.
+
+You can also use co_create/co_resume/co_yield function for asynchronous back-end service, which give you more control of when should I switch between co-routine.
+***
 ##libco是微信后台大规模使用的c/c++协程库，2013年至今稳定运行在微信后台的数万台机器上。
 作者: sunnyxu(sunnyxu@tencent.com), leiffyli(leiffyli@tencent.com), dengoswei@gmail.com(dengoswei@tencent.com), sarlmolchen(sarlmolchen@tencent.com)
 
