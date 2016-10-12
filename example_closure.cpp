@@ -30,16 +30,20 @@ int main( int argc,char *argv[] )
 {
 	vector< stCoClosure_t* > v;
 
+	pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+
 	int total = 100;
 	vector<int> v2;
-	co_ref( ref,total,v2 );
+	co_ref( ref,total,v2,m);
 	for(int i=0;i<10;i++)
 	{
 		co_func( f,ref,i )
 		{
 			printf("ref.total %d i %d\n",ref.total,i );
 			//lock
+			pthread_mutex_lock(&ref.m);
 			ref.v2.push_back( i );
+			pthread_mutex_unlock(&ref.m);
 			//unlock
 		}
 		co_func_end;
