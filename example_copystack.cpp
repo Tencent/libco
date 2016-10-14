@@ -33,7 +33,7 @@ int main()
 
 	stCoRoutine_t* co[2];
 	int routineid[2];
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 2; i++)
 	{
 		routineid[i] = i;
 		co_create(&co[i], &attr, RoutineFunc, routineid + i);
