@@ -936,6 +936,7 @@ int co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout )
 		{
 			co_epoll_ctl( epfd,EPOLL_CTL_DEL,fd,&arg.pPollItems[i].stEvent );
 		}
+		fds[i].revents = arg.fds[i].revents;
 	}
 
 
