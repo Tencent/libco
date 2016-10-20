@@ -17,13 +17,15 @@ libco通过仅有的几个函数接口 co_create/co_resume/co_yield 再配合 co
 作者: sunnyxu(sunnyxu@tencent.com), leiffyli(leiffyli@tencent.com), dengoswei@gmail.com(dengoswei@tencent.com), sarlmolchen(sarlmolchen@tencent.com)
 
 ### libco的特性
-- 类pthread接口设计，通过**co_create、co_resume**等简单清晰接口即可完成协程的创建与恢复;
-- 完善的协程环境编程接口：类 __thread的**协程私有变量**、协程间通信的**协程信号量co_signal**等;
-- 支持**socket族函数hook**，第三方同步网络库一般不需任何修改即可完成异步化改造;
-- 支持常用于cgi的**getenv/setenv**方法hook，现网cig程序也可轻松完成协程化改造;
-- 支持glibc的**gethostbyname/gethostbyname_r接口hook**，简单安全的异步查询dns;
-- 支持自定义的**stackless的协程共享栈**，轻松创建千万级协程;
-- **非语言级别的lambda实现**，结合协程原地编写并执行后台异步任务;
-- 基于epoll/kqueue实现的小而轻的网络框架，基于时间轮盘实现的高性能定时器;
+- 无需侵入业务逻辑，把多进程、多线程服务改造成协程服务，并发能力得到百倍提升;
+- 支持CGI框架，轻松构建web服务(New);
+- 支持gethostbyname、mysqlclient、ssl等常用第三库(New);
+- 可选的共享栈模式，单机轻松接入千万连接(New);
+- 完善简洁的协程编程接口
+ * 类pthread接口设计，通过co_create、co_resume等简单清晰接口即可完成协程的创建与恢复；
+ * __thread的协程私有变量、协程间通信的协程信号量co_signal (New);
+ * 语言级别的lambda实现，结合协程原地编写并执行后台异步任务 (New);
+ * 基于epoll/kqueue实现的小而轻的网络框架，基于时间轮盘实现的高性能定时器;
+
 
 
