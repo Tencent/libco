@@ -852,7 +852,8 @@ stCoRoutine_t *GetCurrThreadCo( )
 
 
 
-int co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout )
+typedef int (*poll_pfn_t)(struct pollfd fds[], nfds_t nfds, int timeout);
+int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout, poll_pfn_t pollfunc)
 {
 	
 	if( timeout > stTimeoutItem_t::eMaxTimeout )
@@ -884,7 +885,38 @@ int co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout )
 	arg.pfnProcess = OnPollProcessEvent;
 	arg.pArg = GetCurrCo( co_get_curr_thread_env() );
 	
-	//2.add timeout
+	
+	//2. add epoll
+	for(nfds_t i=0;i<nfds;i++)
+	{
+		arg.pPollItems[i].pSelf = arg.fds + i;
+		arg.pPollItems[i].pPoll = &arg;
+
+		arg.pPollItems[i].pfnPrepare = OnPollPreparePfn;
+		struct epoll_event &ev = arg.pPollItems[i].stEvent;
+
+		if( fds[i].fd > -1 )
+		{
+			ev.data.ptr = arg.pPollItems + i;
+			ev.events = PollEvent2Epoll( fds[i].events );
+
+			int ret = co_epoll_ctl( epfd,EPOLL_CTL_ADD, fds[i].fd, &ev );
+			if (ret < 0 && errno == EPERM && nfds == 1 && pollfunc != NULL)
+			{
+				if( arg.pPollItems != arr )
+				{
+					free( arg.pPollItems );
+					arg.pPollItems = NULL;
+				}
+				free(arg.fds);
+				free(&arg);
+				return pollfunc(fds, nfds, timeout);
+			}
+		}
+		//if fail,the timeout would work
+	}
+
+	//3.add timeout
 
 	unsigned long long now = GetTickMS();
 	arg.ullExpireTime = now + timeout;
@@ -905,26 +937,6 @@ int co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout )
 
 		return -__LINE__;
 	}
-	//3. add epoll
-
-	for(nfds_t i=0;i<nfds;i++)
-	{
-		arg.pPollItems[i].pSelf = arg.fds + i;
-		arg.pPollItems[i].pPoll = &arg;
-
-		arg.pPollItems[i].pfnPrepare = OnPollPreparePfn;
-		struct epoll_event &ev = arg.pPollItems[i].stEvent;
-
-		if( fds[i].fd > -1 )
-		{
-			ev.data.ptr = arg.pPollItems + i;
-			ev.events = PollEvent2Epoll( fds[i].events );
-
-			co_epoll_ctl( epfd,EPOLL_CTL_ADD, fds[i].fd, &ev );
-		}
-		//if fail,the timeout would work
-		
-	}
 
 	co_yield_env( co_get_curr_thread_env() );
 
@@ -940,6 +952,7 @@ int co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout )
 	}
 
 
+	int iRaiseCnt = arg.iRaiseCnt;
 	if( arg.pPollItems != arr )
 	{
 		free( arg.pPollItems );
@@ -949,7 +962,12 @@ int co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout )
 	free(arg.fds);
 	free(&arg);
 
-	return arg.iRaiseCnt;
+	return iRaiseCnt;
+}
+
+int	co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout_ms )
+{
+	return co_poll_inner(ctx, fds, nfds, timeout_ms, NULL);
 }
 
 void SetEpoll( stCoRoutineEnv_t *env,stCoEpoll_t *ev )
@@ -1114,4 +1132,5 @@ stCoCondItem_t *co_cond_pop( stCoCond_t *link )
 	}
 	return p;
 }
+
 

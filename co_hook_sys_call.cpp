@@ -517,6 +517,8 @@ ssize_t recv( int socket, void *buffer, size_t length, int flags )
 	
 }
 
+extern int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout, poll_pfn_t pollfunc);
+
 int poll(struct pollfd fds[], nfds_t nfds, int timeout)
 {
 
@@ -527,7 +529,7 @@ int poll(struct pollfd fds[], nfds_t nfds, int timeout)
 		return g_sys_poll_func( fds,nfds,timeout );
 	}
 
-	return co_poll( co_get_epoll_ct(),fds,nfds,timeout );
+	return co_poll_inner( co_get_epoll_ct(),fds,nfds,timeout, g_sys_poll_func);
 
 }
 int setsockopt(int fd, int level, int option_name,
@@ -907,3 +909,6 @@ void co_enable_hook_sys() //这函数必须在这里,否则本文件会被忽略！！！
 		co->cEnableSysHook = 1;
 	}
 }
+
+
+
