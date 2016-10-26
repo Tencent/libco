@@ -1,5 +1,5 @@
 #Libco
-Libco is a c/c++ coroutine library that is widely used in WeChat services. It has been running on tens of thousands of machines since 2013.*
+Libco is a c/c++ coroutine library that is widely used in WeChat services. It has been running on tens of thousands of machines since 2013.
 
 Author: sunnyxu(sunnyxu@tencent.com), leiffyli(leiffyli@tencent.com), dengoswei@gmail.com(dengoswei@tencent.com), sarlmolchen(sarlmolchen@tencent.com)
 
@@ -26,6 +26,3 @@ libco通过仅有的几个函数接口 co_create/co_resume/co_yield 再配合 co
  * __thread的协程私有变量、协程间通信的协程信号量co_signal (New);
  * 语言级别的lambda实现，结合协程原地编写并执行后台异步任务 (New);
  * 基于epoll/kqueue实现的小而轻的网络框架，基于时间轮盘实现的高性能定时器;
-
-
-
