@@ -822,18 +822,6 @@ struct hostent *gethostbyname(const char *name)
 }
 
 
-struct hostent* co_gethostbyname(const char *name);
-
-struct hostent *gethostbyname(const char *name)
-{
-    HOOK_SYS_FUNC( gethostbyname );
-    if (!co_is_enable_sys_hook())
-    {   
-        return g_sys_gethostbyname_func(name);
-    }   
-    return co_gethostbyname(name);
-}
-
 struct res_state_wrap
 {
 	struct __res_state state;
