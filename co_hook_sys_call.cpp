@@ -803,6 +803,24 @@ char *getenv( const char *n )
 	return g_sys_getenv_func( n );
 
 }
+struct hostent* co_gethostbyname(const char *name);
+
+struct hostent *gethostbyname(const char *name)
+{
+	HOOK_SYS_FUNC( gethostbyname );
+
+#ifdef __APPLE__
+	return g_sys_gethostbyname_func( name );
+#else
+	if (!co_is_enable_sys_hook())
+	{
+		return g_sys_gethostbyname_func(name);
+	}
+	return co_gethostbyname(name);
+#endif
+
+}
+
 
 struct res_state_wrap
 {
@@ -839,6 +857,7 @@ struct hostbuf_wrap
 
 CO_ROUTINE_SPECIFIC(hostbuf_wrap, __co_hostbuf_wrap);
 
+#ifndef __APPLE__
 struct hostent *co_gethostbyname(const char *name)
 {
 	if (!name)
@@ -877,6 +896,7 @@ struct hostent *co_gethostbyname(const char *name)
 	}
 	return NULL;
 }
+#endif
 
 
 void co_enable_hook_sys() //这函数必须在这里,否则本文件会被忽略！！！
