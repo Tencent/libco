@@ -521,7 +521,11 @@ int co_create( stCoRoutine_t **ppco,const stCoRoutineAttr_t *attr,pfn_co_routine
 void co_free( stCoRoutine_t *co )
 {
 	if( co && co->cIsShareStack )
+	{
 		free( co->stack_mem );
+	}
+	
+	free( co );
 }
 void co_release( stCoRoutine_t *co )
 {
