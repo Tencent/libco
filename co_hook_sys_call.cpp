@@ -245,7 +245,6 @@ int co_accept( int fd, struct sockaddr *addr, socklen_t *len )
 	alloc_by_fd( cli );
 	return cli;
 }
-
 int connect(int fd, const struct sockaddr *address, socklen_t address_len)
 {
 	HOOK_SYS_FUNC( connect );
@@ -255,26 +254,67 @@ int connect(int fd, const struct sockaddr *address, socklen_t address_len)
 		return g_sys_connect_func(fd,address,address_len);
 	}
 
-	int ret = g_sys_connect_func(fd,address,address_len);
+	//1.sys call
+	int ret = g_sys_connect_func( fd,address,address_len );
 
+	rpchook_t *lp = get_by_fd( fd );
+	if( !lp ) return ret;
 
-	if( address_len == sizeof(sockaddr_un))
+	if( sizeof(lp->dest) >= address_len )
 	{
-		const struct sockaddr_un *p = (const struct sockaddr_un *)address;
-		if( strstr( p->sun_path,"connagent_unix_domain_socket") ) ///tmp/connagent_unix_domain_socket
-		{
 		}
 	}
 	rpchook_t *lp = get_by_fd( fd );
 	if( lp )
+	if( O_NONBLOCK & lp->user_flag ) 
 	{
-		if( sizeof(lp->dest) >= address_len )
+		return ret;
+	}
+	
+	if (!(ret < 0 && errno == EINPROGRESS))
+	{
+		return ret;
+	}
+
+	//2.wait
+	int pollret = 0;
+	struct pollfd pf = { 0 };
+
+	for(int i=0;i<3;i++) //25s * 3 = 75s
+	{
+		memset( &pf,0,sizeof(pf) );
+		pf.fd = fd;
+		pf.events = ( POLLOUT | POLLERR | POLLHUP );
+
+		pollret = poll( &pf,1,25000 );
+
+		if( 1 == pollret  )
 		{
-			memcpy( &(lp->dest),address,(int)address_len );
+			break;
 		}
 	}
+	if( pf.revents & POLLOUT ) //connect succ
+	{
+		errno = 0;
+		return 0;
+	}
+
+	//3.set errno
+	int err = 0;
+	socklen_t errlen = sizeof(err);
+	getsockopt( fd,SOL_SOCKET,SO_ERROR,&err,&errlen);
+	if( err ) 
+	{
+		errno = err;
+	}
+	else
+	{
+		errno = ETIMEDOUT;
+	} 
 	return ret;
 }
+
+
 int close(int fd)
 {
 	HOOK_SYS_FUNC( close );
@@ -345,6 +385,11 @@ ssize_t write( int fd, const void *buf, size_t nbyte )
 
 	ssize_t writeret = g_sys_write_func( fd,(const char*)buf + wrotelen,nbyte - wrotelen );
 
+	if (writeret == 0)
+	{
+		return writeret;
+	}
+
 	if( writeret > 0 )
 	{
 		wrotelen += writeret;	
@@ -364,6 +409,10 @@ ssize_t write( int fd, const void *buf, size_t nbyte )
 			break;
 		}
 		wrotelen += writeret ;
+	}
+	if (writeret <= 0 && wrotelen == 0)
+	{
+		return writeret;
 	}
 	return wrotelen;
 }
@@ -457,6 +506,10 @@ ssize_t send(int socket, const void *buffer, size_t length, int flags)
 				+ ( lp->write_timeout.tv_usec / 1000 );
 
 	ssize_t writeret = g_sys_send_func( socket,buffer,length,flags );
+	if (writeret == 0)
+	{
+		return writeret;
+	}
 
 	if( writeret > 0 )
 	{
@@ -478,7 +531,10 @@ ssize_t send(int socket, const void *buffer, size_t length, int flags)
 		}
 		wrotelen += writeret ;
 	}
-
+	if (writeret <= 0 && wrotelen == 0)
+	{
+		return writeret;
+	}
 	return wrotelen;
 }
 
@@ -824,6 +880,18 @@ struct hostent *gethostbyname(const char *name)
 }
 
 
+struct hostent* co_gethostbyname(const char *name);
+
+struct hostent *gethostbyname(const char *name)
+{
+	HOOK_SYS_FUNC( gethostbyname );
+	if (!co_is_enable_sys_hook())
+	{
+		return g_sys_gethostbyname_func(name);
+	}
+	return co_gethostbyname(name);
+}
+
 struct res_state_wrap
 {
 	struct __res_state state;
@@ -911,4 +979,10 @@ void co_enable_hook_sys() //这函数必须在这里,否则本文件会被忽略！！！
 }
 
 
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 
