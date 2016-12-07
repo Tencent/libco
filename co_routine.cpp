@@ -323,7 +323,7 @@ struct stTimeoutItem_t
 
 	enum
 	{
-		eMaxTimeout = 40 * 1000 //20s
+		eMaxTimeout = 40 * 1000 //40s
 	};
 	stTimeoutItem_t *pPrev;
 	stTimeoutItem_t *pNext;
@@ -673,6 +673,8 @@ static uint32_t PollEvent2Epoll( short events )
 	if( events & POLLOUT )  e |= EPOLLOUT;
 	if( events & POLLHUP ) 	e |= EPOLLHUP;
 	if( events & POLLERR )	e |= EPOLLERR;
+	if( events & POLLRDNORM ) e |= EPOLLRDNORM;
+	if( events & POLLWRNORM ) e |= EPOLLWRNORM;
 	return e;
 }
 static short EpollEvent2Poll( uint32_t events )
@@ -682,16 +684,17 @@ static short EpollEvent2Poll( uint32_t events )
 	if( events & EPOLLOUT ) e |= POLLOUT;
 	if( events & EPOLLHUP ) e |= POLLHUP;
 	if( events & EPOLLERR ) e |= POLLERR;
+	if( events & EPOLLRDNORM ) e |= POLLRDNORM;
+	if( events & EPOLLWRNORM ) e |= POLLWRNORM;
 	return e;
 }
 
-static stCoRoutineEnv_t* g_arrCoEnvPerThread[ 102400 ] = { 0 };
+static stCoRoutineEnv_t* g_arrCoEnvPerThread[ 204800 ] = { 0 };
 void co_init_curr_thread_env()
 {
 	pid_t pid = GetPid();	
 	g_arrCoEnvPerThread[ pid ] = (stCoRoutineEnv_t*)calloc( 1,sizeof(stCoRoutineEnv_t) );
 	stCoRoutineEnv_t *env = g_arrCoEnvPerThread[ pid ];
-	printf("init pid %ld env %p\n",(long)pid,env);
 
 	env->iCallStackSize = 0;
 	struct stCoRoutine_t *self = co_create_env( env, NULL, NULL,NULL );
@@ -1132,5 +1135,3 @@ stCoCondItem_t *co_cond_pop( stCoCond_t *link )
 	}
 	return p;
 }
-
-
