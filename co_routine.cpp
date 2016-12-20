@@ -475,6 +475,8 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 	}
 
 	stCoRoutine_t *lp = (stCoRoutine_t*)malloc( sizeof(stCoRoutine_t) );
+	
+	memset( lp,0,(long)(sizeof(stCoRoutine_t))); 
 
 
 	lp->env = env;
@@ -1135,3 +1137,5 @@ stCoCondItem_t *co_cond_pop( stCoCond_t *link )
 	}
 	return p;
 }
+
+
