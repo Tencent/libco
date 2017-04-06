@@ -29,7 +29,7 @@ struct stCoSpec_t
 
 struct stStackMem_t
 {
-	stCoRoutine_t* ocupy_co;
+	stCoRoutine_t* occupy_co;
 	int stack_size;
 	char* stack_bp; //stack_buffer + stack_size
 	char* stack_buffer;

@@ -55,7 +55,7 @@ struct stCoRoutineEnv_t
 
 	//for copy stack log lastco and nextco
 	stCoRoutine_t* pending_co;
-	stCoRoutine_t* ocupy_co;
+	stCoRoutine_t* occupy_co;
 };
 //int socket(int domain, int type, int protocol);
 void co_log_err( const char *fmt,... )
@@ -262,7 +262,7 @@ void inline Join( TLink*apLink,TLink *apOther )
 stStackMem_t* co_alloc_stackmem(unsigned int stack_size)
 {
 	stStackMem_t* stack_mem = (stStackMem_t*)malloc(sizeof(stStackMem_t));
-	stack_mem->ocupy_co= NULL;
+	stack_mem->occupy_co= NULL;
 	stack_mem->stack_size = stack_size;
 	stack_mem->stack_buffer = (char*)malloc(stack_size);
 	stack_mem->stack_bp = stack_mem->stack_buffer + stack_size;
@@ -569,21 +569,21 @@ void co_yield( stCoRoutine_t *co )
 	co_yield_env( co->env );
 }
 
-void save_stack_buffer(stCoRoutine_t* ocupy_co)
+void save_stack_buffer(stCoRoutine_t* occupy_co)
 {
 	///copy out
-	stStackMem_t* stack_mem = ocupy_co->stack_mem;
-	int len = stack_mem->stack_bp - ocupy_co->stack_sp;
+	stStackMem_t* stack_mem = occupy_co->stack_mem;
+	int len = stack_mem->stack_bp - occupy_co->stack_sp;
 
-	if (ocupy_co->save_buffer)
+	if (occupy_co->save_buffer)
 	{
-		free(ocupy_co->save_buffer), ocupy_co->save_buffer = NULL;
+		free(occupy_co->save_buffer), occupy_co->save_buffer = NULL;
 	}
 
-	ocupy_co->save_buffer = (char*)malloc(len); //malloc buf;
-	ocupy_co->save_size = len;
+	occupy_co->save_buffer = (char*)malloc(len); //malloc buf;
+	occupy_co->save_size = len;
 
-	memcpy(ocupy_co->save_buffer, ocupy_co->stack_sp, len);
+	memcpy(occupy_co->save_buffer, occupy_co->stack_sp, len);
 }
 
 void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
@@ -597,20 +597,20 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 	if (!pending_co->cIsShareStack)
 	{
 		env->pending_co = NULL;
-		env->ocupy_co = NULL;
+		env->occupy_co = NULL;
 	}
 	else 
 	{
 		env->pending_co = pending_co;
 		//get last occupy co on the same stack mem
-		stCoRoutine_t* ocupy_co = pending_co->stack_mem->ocupy_co;
-		//set pending co to ocupy thest stack mem;
-		pending_co->stack_mem->ocupy_co = pending_co;
+		stCoRoutine_t* occupy_co = pending_co->stack_mem->occupy_co;
+		//set pending co to occupy thest stack mem;
+		pending_co->stack_mem->occupy_co = pending_co;
 
-		env->ocupy_co = ocupy_co;
-		if (ocupy_co && ocupy_co != pending_co)
+		env->occupy_co = occupy_co;
+		if (occupy_co && occupy_co != pending_co)
 		{
-			save_stack_buffer(ocupy_co);
+			save_stack_buffer(occupy_co);
 		}
 	}
 
@@ -619,10 +619,10 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 
 	//stack buffer may be overwrite, so get again;
 	stCoRoutineEnv_t* curr_env = co_get_curr_thread_env();
-	stCoRoutine_t* update_ocupy_co =  curr_env->ocupy_co;
+	stCoRoutine_t* update_occupy_co =  curr_env->occupy_co;
 	stCoRoutine_t* update_pending_co = curr_env->pending_co;
 	
-	if (update_ocupy_co && update_pending_co && update_ocupy_co != update_pending_co)
+	if (update_occupy_co && update_pending_co && update_occupy_co != update_pending_co)
 	{
 		//resume stack buffer
 		if (update_pending_co->save_buffer && update_pending_co->save_size > 0)
@@ -703,7 +703,7 @@ void co_init_curr_thread_env()
 	self->cIsMain = 1;
 
 	env->pending_co = NULL;
-	env->ocupy_co = NULL;
+	env->occupy_co = NULL;
 
 	coctx_init( &self->ctx );
 
