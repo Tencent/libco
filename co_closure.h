@@ -47,7 +47,11 @@ public:
 #define repeat( n,fun,... ) comac_join( repeat_,n )( fun,__VA_ARGS__)
 
 //2.implement
+#if __cplusplus <= 199711L
 #define decl_typeof( i,a,... ) typedef typeof( a ) typeof_##a;
+#else
+#define decl_typeof( i,a,... ) typedef decltype( a ) typeof_##a;
+#endif
 #define impl_typeof( i,a,... ) typeof_##a & a;
 #define impl_typeof_cpy( i,a,... ) typeof_##a a;
 #define con_param_typeof( i,a,... ) typeof_##a & a##r,
