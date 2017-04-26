@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <errno.h>
 
 using namespace std;
 struct task_t
@@ -86,6 +87,9 @@ static void *readwrite_routine( void *arg )
 			}
 			if( ret <= 0 )
 			{
+				// accept_routine->SetNonBlock(fd) cause EAGAIN, we should continue
+				if (errno == EAGAIN)
+					continue;
 				close( fd );
 				break;
 			}
