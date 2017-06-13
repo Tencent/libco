@@ -193,13 +193,24 @@ static int CreateTcpSocket(const unsigned short shPort /* = 0 */,const char *psz
 
 int main(int argc,char *argv[])
 {
+	if(argc<5){
+		printf("Usage:\n"
+               "example_echosvr [IP] [PORT] [TASK_COUNT] [PROCESS_COUNT]\n"
+               "example_echosvr [IP] [PORT] [TASK_COUNT] [PROCESS_COUNT] -d   # daemonize mode\n");
+		return -1;
+	}
 	const char *ip = argv[1];
 	int port = atoi( argv[2] );
 	int cnt = atoi( argv[3] );
 	int proccnt = atoi( argv[4] );
+	bool deamonize = argc >= 6 && strcmp(argv[5], "-d") == 0;
 
 	g_listen_fd = CreateTcpSocket( port,ip,true );
 	listen( g_listen_fd,1024 );
+	if(g_listen_fd==-1){
+		printf("Port %d is in use\n", port);
+		return -1;
+	}
 	printf("listen %d %s:%d\n",g_listen_fd,ip,port);
 
 	SetNonBlock( g_listen_fd );
@@ -233,6 +244,7 @@ int main(int argc,char *argv[])
 
 		exit(0);
 	}
+	if(!deamonize) wait(NULL);
 	return 0;
 }
 
