@@ -28,11 +28,11 @@ public:
 //-- 1.1 comac_argc
 
 #define comac_get_args_cnt( ... ) comac_arg_n( __VA_ARGS__ )
-#define comac_arg_n( _1,_2,_3,_4,_5,_6,_7,N,...) N
+#define comac_arg_n( _0,_1,_2,_3,_4,_5,_6,_7,N,...) N
 #define comac_args_seqs() 7,6,5,4,3,2,1,0
 #define comac_join_1( x,y ) x##y
 
-#define comac_argc( ... ) comac_get_args_cnt( __VA_ARGS__,comac_args_seqs() )
+#define comac_argc( ... ) comac_get_args_cnt( 0,##__VA_ARGS__,comac_args_seqs() )
 #define comac_join( x,y) comac_join_1( x,y )
 
 //-- 1.2 repeat

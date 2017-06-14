@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <string.h>
 
 #ifndef __APPLE__
 
