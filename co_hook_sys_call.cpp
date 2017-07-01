@@ -865,7 +865,7 @@ struct hostent *gethostbyname(const char *name)
 {
 	HOOK_SYS_FUNC( gethostbyname );
 
-#ifdef __APPLE__
+#if defined( __APPLE__ ) || defined( __FreeBSD__ )
 	return g_sys_gethostbyname_func( name );
 #else
 	if (!co_is_enable_sys_hook())
@@ -913,7 +913,7 @@ struct hostbuf_wrap
 
 CO_ROUTINE_SPECIFIC(hostbuf_wrap, __co_hostbuf_wrap);
 
-#ifndef __APPLE__
+#if !defined( __APPLE__ ) && !defined( __FreeBSD__ )
 struct hostent *co_gethostbyname(const char *name)
 {
 	if (!name)

@@ -33,6 +33,11 @@
 #include <vector>
 #include <set>
 #include <unistd.h>
+
+#ifdef __FreeBSD__
+#include <cstring>
+#endif
+
 using namespace std;
 
 struct task_t
