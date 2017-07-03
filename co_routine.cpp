@@ -126,6 +126,12 @@ static pid_t GetPid()
 		{
 			tid = pid;
 		}
+#elif defined( __FreeBSD__ )
+		syscall(SYS_thr_self, &tid);
+		if( tid < 0 )
+		{
+			tid = pid;
+		}
 #else 
         tid = syscall( __NR_gettid );
 #endif

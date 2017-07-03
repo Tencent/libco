@@ -27,7 +27,13 @@ include co.mk
 CFLAGS += -g -fno-strict-aliasing -O2 -Wall -export-dynamic \
 	-Wall -pipe  -D_GNU_SOURCE -D_REENTRANT -fPIC -Wno-deprecated -m64
 
-LINKS += -g -L./lib -lcolib -lpthread -ldl 
+UNAME := $(shell uname -s)
+
+ifeq ($(UNAME), FreeBSD)
+LINKS += -g -L./lib -lcolib -lpthread
+else
+LINKS += -g -L./lib -lcolib -lpthread -ldl
+endif
 
 COLIB_OBJS=co_epoll.o co_routine.o co_hook_sys_call.o coctx_swap.o coctx.o
 #co_swapcontext.o

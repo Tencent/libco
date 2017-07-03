@@ -35,6 +35,12 @@
 #include <errno.h>
 #include <sys/wait.h>
 
+#ifdef __FreeBSD__
+#include <cstring>
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
+
 using namespace std;
 struct task_t
 {
