@@ -69,7 +69,7 @@ static unsigned long long counter(void)
 	register uint32_t lo, hi;
 	register unsigned long long o;
 	__asm__ __volatile__ (
-			"rdtscp" : "=a"(lo), "=d"(hi)
+			"rdtscp" : "=a"(lo), "=d"(hi):: rcx(%rcx)
 			);
 	o = hi;
 	o <<= 32;
