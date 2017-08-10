@@ -1,5 +1,5 @@
-###Libco
-
+Libco
+===========
 Libco is a c/c++ coroutine library that is widely used in WeChat services. It has been running on tens of thousands of machines since 2013.
 
 Author: sunnyxu(sunnyxu@tencent.com), leiffyli(leiffyli@tencent.com), dengoswei@gmail.com(dengoswei@tencent.com), sarlmolchen(sarlmolchen@tencent.com)
@@ -17,7 +17,7 @@ libco通过仅有的几个函数接口 co_create/co_resume/co_yield 再配合 co
 
 作者: sunnyxu(sunnyxu@tencent.com), leiffyli(leiffyli@tencent.com), dengoswei@gmail.com(dengoswei@tencent.com), sarlmolchen(sarlmolchen@tencent.com)
 
-*近期将开源PaxosStore，敬请期待。*
+PS: **近期将开源PaxosStore，敬请期待。**
 
 ### libco的特性
 - 无需侵入业务逻辑，把多进程、多线程服务改造成协程服务，并发能力得到百倍提升;
