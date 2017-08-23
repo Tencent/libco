@@ -127,13 +127,12 @@ static gethostbyname_pfn_t g_sys_gethostbyname_func = (gethostbyname_pfn_t)dlsym
 static __poll_pfn_t g_sys___poll_func = (__poll_pfn_t)dlsym(RTLD_NEXT, "__poll");
 
 
-/*
 static pthread_getspecific_pfn_t g_sys_pthread_getspecific_func 
 			= (pthread_getspecific_pfn_t)dlsym(RTLD_NEXT,"pthread_getspecific");
 
 static pthread_setspecific_pfn_t g_sys_pthread_setspecific_func 
 			= (pthread_setspecific_pfn_t)dlsym(RTLD_NEXT,"pthread_setspecific");
-
+/*
 static pthread_rwlock_rdlock_pfn_t g_sys_pthread_rwlock_rdlock_func  
 			= (pthread_rwlock_rdlock_pfn_t)dlsym(RTLD_NEXT,"pthread_rwlock_rdlock");
 
@@ -213,6 +212,41 @@ static inline void free_by_fd( int fd )
 	return;
 
 }
+
+void *pthread_getspecific(pthread_key_t key)
+{
+	HOOK_SYS_FUNC( pthread_getspecific );
+	if( !co_is_enable_sys_hook() )
+	{
+		return g_sys_pthread_getspecific_func( key );
+	}
+	
+	stCoRoutine_t *co = GetCurrThreadCo();
+	if( !co || co->cIsMain )
+	{
+		return g_sys_pthread_getspecific_func( key);
+	}
+	
+	return co->aSpec[ key ].value;
+}
+
+int pthread_setspecific(pthread_key_t key, const void *value)
+{
+	HOOK_SYS_FUNC( pthread_setspecific );
+	if( !co_is_enable_sys_hook() )
+	{
+		return g_sys_pthread_setspecific_func( key, value );
+	}
+	
+	stCoRoutine_t *co = GetCurrThreadCo();
+	if( !co || co->cIsMain )
+	{
+		return g_sys_pthread_setspecific_func( key,value );
+	}
+	co->aSpec[ key ].value = (void*)value;
+	return 0;
+}
+
 int socket(int domain, int type, int protocol)
 {
 	HOOK_SYS_FUNC( socket );
@@ -955,7 +989,7 @@ struct hostent *co_gethostbyname(const char *name)
 #endif
 
 
-void co_enable_hook_sys() //这函数必须在这里,否则本文件会被忽略！！！
+void co_enable_hook_sys() //杩欏嚱鏁板繀椤诲湪杩欓噷,鍚﹀垯鏈枃浠朵細琚拷鐣ワ紒锛侊紒
 {
 	stCoRoutine_t *co = GetCurrThreadCo();
 	if( co )
