@@ -38,6 +38,7 @@
 #include <arpa/inet.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <limits.h>
 
 extern "C"
 {
@@ -395,14 +396,15 @@ int AddTimeout( stTimeout_t *apTimeout,stTimeoutItem_t *apItem ,unsigned long lo
 
 		return __LINE__;
 	}
-	int diff = apItem->ullExpireTime - apTimeout->ullStart;
+	unsigned long long diff = apItem->ullExpireTime - apTimeout->ullStart;
 
-	if( diff >= apTimeout->iItemSize )
+	if( diff >= (unsigned long long)apTimeout->iItemSize )
 	{
+		diff = apTimeout->iItemSize - 1;
 		co_log_err("CO_ERR: AddTimeout line %d diff %d",
 					__LINE__,diff);
 
-		return __LINE__;
+		//return __LINE__;
 	}
 	AddTail( apTimeout->pItems + ( apTimeout->llStartIdx + diff ) % apTimeout->iItemSize , apItem );
 
@@ -802,6 +804,16 @@ void co_eventloop( stCoEpoll_t *ctx,pfn_co_eventloop_t pfn,void *arg )
 		{
 
 			PopHead<stTimeoutItem_t,stTimeoutItemLink_t>( active );
+            if (lp->bTimeout && now < lp->ullExpireTime) 
+			{
+				int ret = AddTimeout(ctx->pTimeout, lp, now);
+				if (!ret) 
+				{
+					lp->bTimeout = false;
+					lp = active->head;
+					continue;
+				}
+			}
 			if( lp->pfnProcess )
 			{
 				lp->pfnProcess( lp );
@@ -868,10 +880,13 @@ stCoRoutine_t *GetCurrThreadCo( )
 typedef int (*poll_pfn_t)(struct pollfd fds[], nfds_t nfds, int timeout);
 int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout, poll_pfn_t pollfunc)
 {
-	
-	if( timeout > stTimeoutItem_t::eMaxTimeout )
+    if (timeout == 0)
 	{
-		timeout = stTimeoutItem_t::eMaxTimeout;
+		return pollfunc(fds, nfds, timeout);
+	}
+	if (timeout < 0)
+	{
+		timeout = INT_MAX;
 	}
 	int epfd = ctx->iEpollFd;
 	stCoRoutine_t* self = co_self();
@@ -934,46 +949,44 @@ int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeou
 	unsigned long long now = GetTickMS();
 	arg.ullExpireTime = now + timeout;
 	int ret = AddTimeout( ctx->pTimeout,&arg,now );
+	int iRaiseCnt = 0;
 	if( ret != 0 )
 	{
 		co_log_err("CO_ERR: AddTimeout ret %d now %lld timeout %d arg.ullExpireTime %lld",
 				ret,now,timeout,arg.ullExpireTime);
 		errno = EINVAL;
+		iRaiseCnt = -1;
+
+	}
+    else
+	{
+		co_yield_env( co_get_curr_thread_env() );
+		iRaiseCnt = arg.iRaiseCnt;
+	}
+
+    {
+		//clear epoll status and memory
+		RemoveFromLink<stTimeoutItem_t,stTimeoutItemLink_t>( &arg );
+		for(nfds_t i = 0;i < nfds;i++)
+		{
+			int fd = fds[i].fd;
+			if( fd > -1 )
+			{
+				co_epoll_ctl( epfd,EPOLL_CTL_DEL,fd,&arg.pPollItems[i].stEvent );
+			}
+			fds[i].revents = arg.fds[i].revents;
+		}
+
 
 		if( arg.pPollItems != arr )
 		{
 			free( arg.pPollItems );
 			arg.pPollItems = NULL;
 		}
+
 		free(arg.fds);
 		free(&arg);
-
-		return -__LINE__;
 	}
-
-	co_yield_env( co_get_curr_thread_env() );
-
-	RemoveFromLink<stTimeoutItem_t,stTimeoutItemLink_t>( &arg );
-	for(nfds_t i = 0;i < nfds;i++)
-	{
-		int fd = fds[i].fd;
-		if( fd > -1 )
-		{
-			co_epoll_ctl( epfd,EPOLL_CTL_DEL,fd,&arg.pPollItems[i].stEvent );
-		}
-		fds[i].revents = arg.fds[i].revents;
-	}
-
-
-	int iRaiseCnt = arg.iRaiseCnt;
-	if( arg.pPollItems != arr )
-	{
-		free( arg.pPollItems );
-		arg.pPollItems = NULL;
-	}
-
-	free(arg.fds);
-	free(&arg);
 
 	return iRaiseCnt;
 }
@@ -1145,5 +1158,3 @@ stCoCondItem_t *co_cond_pop( stCoCond_t *link )
 	}
 	return p;
 }
-
-
