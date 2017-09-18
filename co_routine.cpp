@@ -122,7 +122,12 @@ static pid_t GetPid()
     {
         pid = getpid();
 #if defined( __APPLE__ )
-		tid = syscall( SYS_gettid );
+  #include <Availability.h>
+  #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_10_12
+    tid = pthread_mach_thread_np(pthread_self());
+  #else
+    tid = syscall( SYS_gettid );
+  #endif
 		if( -1 == (long)tid )
 		{
 			tid = pid;
