@@ -701,9 +701,23 @@ static short EpollEvent2Poll( uint32_t events )
 	return e;
 }
 
-static stCoRoutineEnv_t* g_arrCoEnvPerThread[ 204800 ] = { 0 };
+static stCoRoutineEnv_t** g_arrCoEnvPerThread = NULL;
 void co_init_curr_thread_env()
 {
+    if (g_arrCoEnvPerThread == NULL)
+    {
+        int max_pid = 2048000;
+        char file[] = "/proc/sys/kernel/pid_max";
+        FILE* pid_max = fopen(file, "r");
+        if (pid_max != NULL) {
+            fscanf(pid_max, "%d", &max_pid);
+            fclose(pid_max);
+        } else {
+            co_log_err("CO_ERR: open %s failed : %s", file, strerror(errno));
+        }
+        g_arrCoEnvPerThread = (stCoRoutineEnv_t**)calloc(max_pid, sizeof(stCoRoutineEnv_t*));
+    }
+
 	pid_t pid = GetPid();	
 	g_arrCoEnvPerThread[ pid ] = (stCoRoutineEnv_t*)calloc( 1,sizeof(stCoRoutineEnv_t) );
 	stCoRoutineEnv_t *env = g_arrCoEnvPerThread[ pid ];
