@@ -87,12 +87,14 @@ extern "C"
 {
 	extern void coctx_swap( coctx_t *,coctx_t* ) asm("coctx_swap");
 };
-#if defined(__i386__)
+
 int coctx_init( coctx_t *ctx )
 {
 	memset( ctx,0,sizeof(*ctx));
 	return 0;
 }
+
+#if defined(__i386__)
 int coctx_make( coctx_t *ctx,coctx_pfn_t pfn,const void *s,const void *s1 )
 {
 	//make room for coctx_param
@@ -127,12 +129,5 @@ int coctx_make( coctx_t *ctx,coctx_pfn_t pfn,const void *s,const void *s1 )
 	ctx->regs[ kRSI ] = (char*)s1;
 	return 0;
 }
-
-int coctx_init( coctx_t *ctx )
-{
-	memset( ctx,0,sizeof(*ctx));
-	return 0;
-}
-
 #endif
 
