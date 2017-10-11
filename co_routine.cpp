@@ -706,7 +706,7 @@ void co_init_curr_thread_env()
 {
 	if (g_arrCoEnvPerThread == NULL)
 	{
-		int max_pid = 2048000;
+		int max_pid = 1024000;
 		char file[] = "/proc/sys/kernel/pid_max";
 		FILE* pid_max = fopen(file, "r");
 		if (pid_max != NULL)
