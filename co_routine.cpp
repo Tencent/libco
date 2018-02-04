@@ -39,6 +39,8 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <limits.h>
+#include <sys/mman.h>
+#include <cmath>
 
 extern "C"
 {
@@ -263,6 +265,59 @@ void inline Join( TLink*apLink,TLink *apOther )
 	}
 
 	apOther->head = apOther->tail = NULL;
+}
+
+std::size_t pagesize()
+{
+    static std::size_t size = ::sysconf(_SC_PAGESIZE);
+    return size;
+}
+
+std::size_t page_count( std::size_t stacksize)
+{
+    return static_cast< std::size_t >( 
+        std::ceil(
+            static_cast< float >(stacksize) / pagesize() ) );
+}
+
+void * guard_allocate(std::size_t size)
+{
+    const std::size_t pages( page_count( size) + 2); // add one guard page
+    const std::size_t size_( pages * pagesize() );
+    assert( 0 < size && 0 < size_);
+
+    const int fd( ::open("/dev/zero", O_RDONLY) );
+    assert( -1 != fd);
+
+    void * limit = mmap( 0, size_, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    ::close( fd);
+    if (!limit) throw std::bad_alloc();
+
+    ::memset( limit, '\0', size_);
+
+    // conforming to POSIX.1-2001
+    
+    // protect head page
+    int result( ::mprotect( limit, pagesize(), PROT_NONE) );
+    assert( 0 == result);
+
+    // protect tail page
+    result = ::mprotect((char*)limit + size_ - pagesize(), pagesize(), PROT_NONE);
+    assert( 0 == result);
+
+    return static_cast< char * >(limit) + pagesize();
+}
+
+void guard_deallocate( void * vp, std::size_t size)
+{
+    assert(NULL != vp);
+
+    const std::size_t pages = page_count( size) + 2;
+    const std::size_t size_ = pages * pagesize();
+    assert( 0 < size && 0 < size_);
+    void * limit = static_cast< char * >(vp) - pagesize();
+    // conform to POSIX.4 (POSIX.1b-1993, _POSIX_C_SOURCE=199309L)
+    ::munmap( limit, size_);
 }
 
 /////////////////for copy stack //////////////////////////
