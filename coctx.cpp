@@ -122,6 +122,7 @@ int coctx_make( coctx_t *ctx,coctx_pfn_t pfn,const void *s,const void *s1 )
 	ctx->regs[ kRSP ] = sp - 8;
 
 	ctx->regs[ kRETAddr] = (char*)pfn;
+    *(long *)(sp - 8) = (long)pfn;
 
 	ctx->regs[ kRDI ] = (char*)s;
 	ctx->regs[ kRSI ] = (char*)s1;
