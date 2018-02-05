@@ -57,6 +57,7 @@ coctx_swap:
 
 movq    %rsp, 104(%rdi)
 movq    %rbx, 96(%rdi)
+movq    %rdi, 56(%rdi)
 movq    %rbp, 48(%rdi)
 movq    %r12, 24(%rdi)
 movq    %r13, 16(%rdi)
@@ -68,6 +69,7 @@ movq    8(%rsi), %r14
 movq    16(%rsi), %r13
 movq    24(%rsi), %r12
 movq    48(%rsi), %rbp
+movq    56(%rsi), %rdi
 movq    96(%rsi), %rbx
 movq    104(%rsi), %rsp
 
