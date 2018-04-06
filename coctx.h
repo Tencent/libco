@@ -19,6 +19,10 @@
 #ifndef __CO_CTX_H__
 #define __CO_CTX_H__
 #include <stdlib.h>
+#if defined(__CYGWIN__)
+#include <sys/ucontext.h>
+#endif
+
 typedef void* (*coctx_pfn_t)( void* s, void* s2 );
 struct coctx_param_t
 {
@@ -34,7 +38,9 @@ struct coctx_t
 #endif
 	size_t ss_size;
 	char *ss_sp;
-	
+#if defined(__CYGWIN__)
+	ucontext_t *ucontext;
+#endif
 };
 
 int coctx_init( coctx_t *ctx );

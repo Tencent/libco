@@ -36,9 +36,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#if !defined(__CYGWIN__)
 #include <sys/syscall.h>
+#endif
 #include <unistd.h>
 #include <limits.h>
+#include <malloc.h>
+#include <ucontext.h>
+#include <dlfcn.h>
 
 extern "C"
 {
@@ -131,6 +136,15 @@ static pid_t GetPid()
 		syscall(SYS_thr_self, &tid);
 		if( tid < 0 )
 		{
+			tid = pid;
+		}
+#elif defined(__CYGWIN__)
+		static int (*getThreadId)(void) = (int (*)(void)) dlsym(RTLD_DEFAULT, "GetCurrentThreadId");
+		if (getThreadId != NULL)
+		{
+			tid = getThreadId();
+		}
+		if (tid <= 0) {
 			tid = pid;
 		}
 #else 
@@ -525,6 +539,20 @@ int co_create( stCoRoutine_t **ppco,const stCoRoutineAttr_t *attr,pfn_co_routine
 		co_init_curr_thread_env();
 	}
 	stCoRoutine_t *co = co_create_env( co_get_curr_thread_env(), attr, pfn,arg );
+
+#if defined(__CYGWIN__)
+	co->ctx.ucontext = (ucontext_t *) malloc(sizeof(ucontext_t));
+	memset(co->ctx.ucontext, 0, sizeof(ucontext_t));
+	getcontext(co->ctx.ucontext);
+	co->ctx.ucontext->uc_stack.ss_flags = 0;
+	co->ctx.ucontext->uc_stack.ss_sp = co->ctx.ss_sp;
+	co->ctx.ucontext->uc_stack.ss_size = co->ctx.ss_size;
+	stCoRoutineEnv_t *env = co_get_curr_thread_env();
+	stCoRoutine_t *lpCurrRoutine = env->pCallStack[ env->iCallStackSize - 1 ];
+	co->ctx.ucontext->uc_link = lpCurrRoutine->ctx.ucontext;
+	makecontext(co->ctx.ucontext, pfn, 1, arg);
+#endif
+
 	*ppco = co;
 	return 0;
 }
@@ -534,7 +562,10 @@ void co_free( stCoRoutine_t *co )
     {    
         free(co->stack_mem->stack_buffer);
         free(co->stack_mem);
-    }   
+    }
+#if defined(__CYGWIN__)
+	free(co->ctx.ucontext);
+#endif
     free( co );
 }
 void co_release( stCoRoutine_t *co )
@@ -625,7 +656,11 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 	}
 
 	//swap context
+#if defined(__CYGWIN__)
+	swapcontext(curr->ctx.ucontext, pending_co->ctx.ucontext);
+#else
 	coctx_swap(&(curr->ctx),&(pending_co->ctx) );
+#endif
 
 	//stack buffer may be overwrite, so get again;
 	stCoRoutineEnv_t* curr_env = co_get_curr_thread_env();
@@ -717,6 +752,10 @@ void co_init_curr_thread_env()
 
 	coctx_init( &self->ctx );
 
+#if defined(__CYGWIN__)
+	self->ctx.ucontext = (ucontext_t *) malloc(sizeof(ucontext_t));
+	memset(self->ctx.ucontext, 0, sizeof(ucontext_t));
+#endif
 	env->pCallStack[ env->iCallStackSize++ ] = self;
 
 	stCoEpoll_t *ev = AllocEpoll();
@@ -1025,7 +1064,7 @@ void *co_getspecific(pthread_key_t key)
 	{
 		return pthread_getspecific( key );
 	}
-	return co->aSpec[ key ].value;
+	return co->aSpec[ (unsigned long)key ].value;
 }
 int co_setspecific(pthread_key_t key, const void *value)
 {
@@ -1034,7 +1073,7 @@ int co_setspecific(pthread_key_t key, const void *value)
 	{
 		return pthread_setspecific( key,value );
 	}
-	co->aSpec[ key ].value = (void*)value;
+	co->aSpec[ (unsigned long)key ].value = (void*)value;
 	return 0;
 }
 
