@@ -92,14 +92,12 @@ static void *readwrite_routine( void *arg )
 			{
 				ret = write( fd,buf,ret );
 			}
-			if( ret <= 0 )
+			if( ret > 0 || ( -1 == ret && EAGAIN == errno ) )
 			{
-				// accept_routine->SetNonBlock(fd) cause EAGAIN, we should continue
-				if (errno == EAGAIN)
-					continue;
-				close( fd );
-				break;
+				continue;
 			}
+			close( fd );
+			break;
 		}
 
 	}
