@@ -17,7 +17,7 @@
 */
 
 .globl coctx_swap
-#if !defined( __APPLE__ ) && !defined( __FreeBSD__ )
+#if !defined( __APPLE__ ) && !defined( __FreeBSD__ ) && !defined(__CYGWIN__)
 .type  coctx_swap, @function
 #endif
 coctx_swap:

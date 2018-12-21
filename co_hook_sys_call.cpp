@@ -18,7 +18,9 @@
 
 #include <sys/socket.h>
 #include <sys/time.h>
+#if !defined(__CYGWIN__)
 #include <sys/syscall.h>
+#endif
 #include <sys/un.h>
 
 #include <dlfcn.h>
@@ -41,9 +43,21 @@
 #include <netdb.h>
 
 #include <time.h>
+#include <malloc.h>
 #include "co_routine.h"
 #include "co_routine_inner.h"
 #include "co_routine_specific.h"
+
+#if defined(__CYGWIN__)
+#define RTLD_NEXT RTLD_DEFAULT
+
+int gethostbyname_r(const char *name,
+					struct hostent *ret, char *buf, size_t buflen,
+					struct hostent **result, int *h_errnop)
+{
+
+}
+#endif
 
 typedef long long ll64_t;
 
@@ -955,7 +969,7 @@ struct hostent *co_gethostbyname(const char *name)
 #endif
 
 
-void co_enable_hook_sys() //Õâº¯Êý±ØÐëÔÚÕâÀï,·ñÔò±¾ÎÄ¼þ»á±»ºöÂÔ£¡£¡£¡
+void co_enable_hook_sys() //ï¿½âº¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½á±»ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½
 {
 	stCoRoutine_t *co = GetCurrThreadCo();
 	if( co )
