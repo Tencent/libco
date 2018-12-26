@@ -520,10 +520,6 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 
 int co_create( stCoRoutine_t **ppco,const stCoRoutineAttr_t *attr,pfn_co_routine_t pfn,void *arg )
 {
-	if( !co_get_curr_thread_env() ) 
-	{
-		co_init_curr_thread_env();
-	}
 	stCoRoutine_t *co = co_create_env( co_get_curr_thread_env(), attr, pfn,arg );
 	*ppco = co;
 	return 0;
@@ -724,6 +720,11 @@ void co_init_curr_thread_env()
 }
 stCoRoutineEnv_t *co_get_curr_thread_env()
 {
+	if( !gCoEnvPerThread )
+	{
+		co_init_curr_thread_env();
+	}
+
 	return gCoEnvPerThread;
 }
 
@@ -1002,10 +1003,6 @@ void SetEpoll( stCoRoutineEnv_t *env,stCoEpoll_t *ev )
 }
 stCoEpoll_t *co_get_epoll_ct()
 {
-	if( !co_get_curr_thread_env() )
-	{
-		co_init_curr_thread_env();
-	}
 	return co_get_curr_thread_env()->pEpoll;
 }
 struct stHookPThreadSpec_t
