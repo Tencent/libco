@@ -114,6 +114,7 @@ static unsigned long long GetTickMS()
 #endif
 }
 
+/* no longer use
 static pid_t GetPid()
 {
     static __thread pid_t pid = 0;
@@ -141,7 +142,6 @@ static pid_t GetPid()
     return tid;
 
 }
-/*
 static pid_t GetPid()
 {
 	char **p = (char**)pthread_self();

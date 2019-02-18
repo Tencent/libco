@@ -41,6 +41,7 @@
 #include <netdb.h>
 
 #include <time.h>
+#include <map>
 #include "co_routine.h"
 #include "co_routine_inner.h"
 #include "co_routine_specific.h"
@@ -575,15 +576,48 @@ extern int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int
 
 int poll(struct pollfd fds[], nfds_t nfds, int timeout)
 {
-
 	HOOK_SYS_FUNC( poll );
 
-	if( !co_is_enable_sys_hook() )
-	{
-		return g_sys_poll_func( fds,nfds,timeout );
+	if (!co_is_enable_sys_hook() || timeout == 0) {
+		return g_sys_poll_func(fds, nfds, timeout);
+	}
+	pollfd *fds_merge = NULL;
+	nfds_t nfds_merge = 0;
+	std::map<int, int> m;  // fd --> idx
+	std::map<int, int>::iterator it;
+	if (nfds > 1) {
+		fds_merge = (pollfd *)malloc(sizeof(pollfd) * nfds);
+		for (size_t i = 0; i < nfds; i++) {
+			if ((it = m.find(fds[i].fd)) == m.end()) {
+				fds_merge[nfds_merge] = fds[i];
+				m[fds[i].fd] = nfds_merge;
+				nfds_merge++;
+			} else {
+				int j = it->second;
+				fds_merge[j].events |= fds[i].events;  // merge in j slot
+			}
+		}
 	}
 
-	return co_poll_inner( co_get_epoll_ct(),fds,nfds,timeout, g_sys_poll_func);
+	int ret = 0;
+	if (nfds_merge == nfds || nfds == 1) {
+		ret = co_poll_inner(co_get_epoll_ct(), fds, nfds, timeout, g_sys_poll_func);
+	} else {
+		ret = co_poll_inner(co_get_epoll_ct(), fds_merge, nfds_merge, timeout,
+				g_sys_poll_func);
+		if (ret > 0) {
+			for (size_t i = 0; i < nfds; i++) {
+				it = m.find(fds[i].fd);
+				if (it != m.end()) {
+					int j = it->second;
+					fds[i].revents = fds_merge[j].revents & fds[i].events;
+				}
+			}
+		}
+	}
+	free(fds_merge);
+	return ret;
+
 
 }
 int setsockopt(int fd, int level, int option_name,
