@@ -1,17 +1,33 @@
 cmake_minimum_required(VERSION 2.8)
-project(libco)
+project(libco CXX C ASM)
 
 # This for mac osx only
 set(CMAKE_MACOSX_RPATH 0)
 
 # Set lib version
-set(LIBCO_VERSION   0.5)
+set(LIBCO_VERSION 0.5)
 
-# Set cflags
-set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -g -fno-strict-aliasing -O2 -Wall -export-dynamic -Wall -pipe  -D_GNU_SOURCE -D_REENTRANT -fPIC -Wno-deprecated -m64)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
 
-# Use c and asm
-enable_language(C ASM)
+# Set cxxflags
+set(CXX_FLAGS 
+    -g
+    -fno-strict-aliasing
+    -Wall
+    -export-dynamic
+    -Wall
+    -pipe
+    -D_GNU_SOURCE
+    -D_REENTRANT
+    -DLINUX
+    -fPIC 
+    -m64)
+string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
+
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -fno-inline")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 # Add source files
 set(SOURCE_FILES
@@ -35,8 +51,6 @@ set_target_properties(colib_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 # Set shared library version, will generate libcolib.${LIBCO_VERSION}.so and a symbol link named libcolib.so
 # For mac osx, the extension name will be .dylib
 set_target_properties(colib_shared PROPERTIES VERSION ${LIBCO_VERSION} SOVERSION ${LIBCO_VERSION})
-
-
 
 # Macro for add example target
 macro(add_example_target EXAMPLE_TARGET)
