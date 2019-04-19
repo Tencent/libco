@@ -39,6 +39,10 @@ static void *routine_func( void * )
 }
 int main(int argc,char *argv[])
 {
+	if (arac != 2) {
+	    printf("Usage:./example_thread x");
+	    return -1;
+	}
 	int cnt = atoi( argv[1] );
 
 	pthread_t tid[ cnt ];
