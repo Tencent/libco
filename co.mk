@@ -63,7 +63,7 @@ OBJS = $(CPPOBJS) $(COBJS)
 CPPCOMPI=$(CPP) $(CFLAGS) -Wno-deprecated
 CCCOMPI=$(CC) $(CFLAGS)
 
-BUILDEXE = $(CPP) $(BFLAGS) -o $@ $^ $(LINKS) 
+BUILDEXE = $(CPP) $(BFLAGS) -o $@ $< $(LINKS) 
 CLEAN = rm -f *.o 
 
 CPPCOMPILE = $(CPPCOMPI) $< $(FLAGS) $(INCLS) $(MTOOL_INCL) -o $@
