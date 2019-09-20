@@ -229,7 +229,14 @@ int socket(int domain, int type, int protocol)
 	}
 
 	rpchook_t *lp = alloc_by_fd( fd );
-	lp->domain = domain;
+	if(lp == NULL)
+	{
+		return fd;
+	}
+	else
+	{
+		lp->domain = domain;
+	}
 	
 	fcntl( fd, F_SETFL, g_sys_fcntl_func(fd, F_GETFL,0 ) );
 
