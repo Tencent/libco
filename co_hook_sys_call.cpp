@@ -672,6 +672,9 @@ int fcntl(int fildes, int cmd, ...)
 		case F_GETFD:
 		{
 			ret = g_sys_fcntl_func( fildes,cmd );
+      if (lp && !(lp->user_flag & O_NONBLOCK)) {
+          ret = ret & (~O_NONBLOCK);
+      }
 			break;
 		}
 		case F_SETFD:
