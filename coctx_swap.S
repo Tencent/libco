@@ -17,79 +17,67 @@
 */
 
 .globl coctx_swap
-#if !defined( __APPLE__ ) && !defined( __FreeBSD__ )
+#if !defined( __APPLE__ )
 .type  coctx_swap, @function
 #endif
 coctx_swap:
 
 #if defined(__i386__)
-	leal 4(%esp), %eax //sp 
-	movl 4(%esp), %esp 
-	leal 32(%esp), %esp //parm a : &regs[7] + sizeof(void*)
+    movl 4(%esp), %eax
+    movl %esp,  28(%eax)
+    movl %ebp, 24(%eax)
+    movl %esi, 20(%eax)
+    movl %edi, 16(%eax)
+    movl %edx, 12(%eax)
+    movl %ecx, 8(%eax)
+    movl %ebx, 4(%eax)
 
-	pushl %eax //esp ->parm a 
 
-	pushl %ebp
-	pushl %esi
-	pushl %edi
-	pushl %edx
-	pushl %ecx
-	pushl %ebx
-	pushl -4(%eax)
+    movl 8(%esp), %eax
+    movl 4(%eax), %ebx
+    movl 8(%eax), %ecx
+    movl 12(%eax), %edx
+    movl 16(%eax), %edi
+    movl 20(%eax), %esi
+    movl 24(%eax), %ebp
+    movl 28(%eax), %esp
 
-	
-	movl 4(%eax), %esp //parm b -> &regs[0]
-
-	popl %eax  //ret func addr
-	popl %ebx  
-	popl %ecx
-	popl %edx
-	popl %edi
-	popl %esi
-	popl %ebp
-	popl %esp
-	pushl %eax //set ret func addr
-
-	xorl %eax, %eax
 	ret
 
 #elif defined(__x86_64__)
-	leaq 8(%rsp),%rax
-	leaq 112(%rdi),%rsp
-	pushq %rax
-	pushq %rbx
-	pushq %rcx
-	pushq %rdx
+	leaq (%rsp),%rax
+    movq %rax, 104(%rdi)
+    movq %rbx, 96(%rdi)
+    movq %rcx, 88(%rdi)
+    movq %rdx, 80(%rdi)
+	  movq 0(%rax), %rax
+	  movq %rax, 72(%rdi) 
+    movq %rsi, 64(%rdi)
+	  movq %rdi, 56(%rdi)
+    movq %rbp, 48(%rdi)
+    movq %r8, 40(%rdi)
+    movq %r9, 32(%rdi)
+    movq %r12, 24(%rdi)
+    movq %r13, 16(%rdi)
+    movq %r14, 8(%rdi)
+    movq %r15, (%rdi)
+	  xorq %rax, %rax
 
-	pushq -8(%rax) //ret func addr
+    movq 48(%rsi), %rbp
+    movq 104(%rsi), %rsp
+    movq (%rsi), %r15
+    movq 8(%rsi), %r14
+    movq 16(%rsi), %r13
+    movq 24(%rsi), %r12
+    movq 32(%rsi), %r9
+    movq 40(%rsi), %r8
+    movq 56(%rsi), %rdi
+    movq 80(%rsi), %rdx
+    movq 88(%rsi), %rcx
+    movq 96(%rsi), %rbx
+		leaq 8(%rsp), %rsp
+		pushq 72(%rsi)
 
-	pushq %rsi
-	pushq %rdi
-	pushq %rbp
-	pushq %r8
-	pushq %r9
-	pushq %r12
-	pushq %r13
-	pushq %r14
-	pushq %r15
-	
-	movq %rsi, %rsp
-	popq %r15
-	popq %r14
-	popq %r13
-	popq %r12
-	popq %r9
-	popq %r8
-	popq %rbp
-	popq %rdi
-	popq %rsi
-	popq %rax //ret func addr
-	popq %rdx
-	popq %rcx
-	popq %rbx
-	popq %rsp
-	pushq %rax
-	
-	xorl %eax, %eax
+    movq 64(%rsi), %rsi
 	ret
 #endif
