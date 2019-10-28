@@ -292,24 +292,24 @@ int connect(int fd, const struct sockaddr *address, socklen_t address_len)
 			break;
 		}
 	}
+
 	if( pf.revents & POLLOUT ) //connect succ
 	{
-		errno = 0;
-		return 0;
-	}
+    // 3.check getsockopt ret
+    int err = 0;
+    socklen_t errlen = sizeof(err);
+    ret = getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &errlen);
+    if (ret < 0) {
+      return ret;
+    } else if (err != 0) {
+      errno = err;
+      return -1;
+    }
+    errno = 0;
+    return 0;
+  }
 
-	//3.set errno
-	int err = 0;
-	socklen_t errlen = sizeof(err);
-	getsockopt( fd,SOL_SOCKET,SO_ERROR,&err,&errlen);
-	if( err ) 
-	{
-		errno = err;
-	}
-	else
-	{
-		errno = ETIMEDOUT;
-	} 
+  errno = ETIMEDOUT;
 	return ret;
 }
 
