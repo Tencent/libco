@@ -109,7 +109,7 @@ int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
 #elif defined(__x86_64__)
 int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
   char* sp = ctx->ss_sp + ctx->ss_size;
-  sp = (char*)((unsigned long)sp & -16LL);
+  sp = (char*)((unsigned long)sp & -16LL) - sizeof(void*);
 
   memset(ctx->regs, 0, sizeof(ctx->regs));
   void** ret_addr = (void**)(sp);
