@@ -22,6 +22,7 @@ struct stCoClosure_t
 {
 public:
 	virtual void exec() = 0;
+	virtual ~stCoClosure_t(){}
 };
 
 //1.base 
