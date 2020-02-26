@@ -135,9 +135,14 @@ static void *poll_routine( void *arg )
 		int ret = poll( pf,iWaitCnt,1000 );
 		printf("co %p poll wait %ld ret %d\n",
 				co_self(),iWaitCnt,ret);
+		int nready = ret; 
 		for(int i=0;i<(int)iWaitCnt;i++)
 		{
-			printf("co %p fire fd %d revents 0x%X POLLOUT 0x%X POLLERR 0x%X POLLHUP 0x%X\n",
+			if ( nready <= 0 )
+				break;
+			if (pf[i].revents & (POLLOUT | POLLERR | POLLHUP)) 
+			{
+				printf("co %p fire fd %d revents 0x%X POLLOUT 0x%X POLLERR 0x%X POLLHUP 0x%X\n",
 					co_self(),
 					pf[i].fd,
 					pf[i].revents,
@@ -145,13 +150,15 @@ static void *poll_routine( void *arg )
 					POLLERR,
 					POLLHUP
 					);
-			setRaiseFds.insert( pf[i].fd );
+				setRaiseFds.insert( pf[i].fd );
+				nready--;
+			}
 		}
 		if( setRaiseFds.size() == v.size())
 		{
 			break;
 		}
-		if( ret <= 0 )
+		if( ret < 0 )
 		{
 			break;
 		}
