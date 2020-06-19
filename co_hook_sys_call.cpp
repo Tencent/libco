@@ -79,7 +79,7 @@ typedef ssize_t (*recvfrom_pfn_t)(int socket, void *buffer, size_t length,
 	                 int flags, struct sockaddr *address,
 					               socklen_t *address_len);
 
-typedef size_t (*send_pfn_t)(int socket, const void *buffer, size_t length, int flags);
+typedef ssize_t (*send_pfn_t)(int socket, const void *buffer, size_t length, int flags);
 typedef ssize_t (*recv_pfn_t)(int socket, void *buffer, size_t length, int flags);
 
 typedef int (*poll_pfn_t)(struct pollfd fds[], nfds_t nfds, int timeout);
@@ -992,7 +992,7 @@ struct hostent *co_gethostbyname(const char *name)
 #endif
 
 
-void co_enable_hook_sys() //这函数必须在这里,否则本文件会被忽略！！！
+void co_enable_hook_sys() //杩欏嚱鏁板繀椤诲湪杩欓噷,鍚﹀垯鏈枃浠朵細琚拷鐣ワ紒锛侊紒
 {
 	stCoRoutine_t *co = GetCurrThreadCo();
 	if( co )
