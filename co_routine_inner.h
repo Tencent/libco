@@ -65,7 +65,7 @@ struct stCoRoutine_t
 	stStackMem_t* stack_mem;
 
 
-	//save satck buffer while confilct on same stack_buffer;
+	//save stack buffer while confilct on same stack_buffer;
 	char* stack_sp; 
 	unsigned int save_size;
 	char* save_buffer;
