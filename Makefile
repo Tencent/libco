@@ -81,4 +81,19 @@ libco-$(version).src.tar.gz:
 clean:
 	$(CLEAN) *.o $(PROGS)
 	rm -fr MANIFEST lib solib libco-$(version).src.tar.gz libco-$(version)
+	rm -f $(AUTODEPS)	
+
+# create a list of auto dependencies
+AUTODEPS:= $(patsubst %.o,%.d, $(COLIB_OBJS))
+
+ # include by auto dependencies
+-include $(AUTODEPS)
+
+%.o: %.cpp %.d
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+%.d: %.cpp
+	$(CC) $(CFLAGS) -MM -MT"$@ $(@:.d=.o)" -MP -MF $@ $<
+
+$(PROGS): libcolib.a libcolib.so
 
