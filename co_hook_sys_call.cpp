@@ -72,6 +72,8 @@ typedef int (*close_pfn_t)(int fd);
 typedef ssize_t (*read_pfn_t)(int fildes, void *buf, size_t nbyte);
 typedef ssize_t (*write_pfn_t)(int fildes, const void *buf, size_t nbyte);
 
+typedef ssize_t (*writev_pfn_t)(int fildes, const void *buf, size_t nbyte);
+
 typedef ssize_t (*sendto_pfn_t)(int socket, const void *message, size_t length,
 	                 int flags, const struct sockaddr *dest_addr,
 					               socklen_t dest_len);
@@ -107,6 +109,8 @@ static close_pfn_t g_sys_close_func 	= (close_pfn_t)dlsym(RTLD_NEXT,"close");
 
 static read_pfn_t g_sys_read_func 		= (read_pfn_t)dlsym(RTLD_NEXT,"read");
 static write_pfn_t g_sys_write_func 	= (write_pfn_t)dlsym(RTLD_NEXT,"write");
+
+static writev_pfn_t g_sys_writev_func 	= (writev_pfn_t)dlsym(RTLD_NEXT,"writev");
 
 static sendto_pfn_t g_sys_sendto_func 	= (sendto_pfn_t)dlsym(RTLD_NEXT,"sendto");
 static recvfrom_pfn_t g_sys_recvfrom_func = (recvfrom_pfn_t)dlsym(RTLD_NEXT,"recvfrom");
@@ -417,6 +421,95 @@ ssize_t write( int fd, const void *buf, size_t nbyte )
 		return writeret;
 	}
 	return wrotelen;
+}
+
+ssize_t writev(int socket, const struct iovec* iov, int iovcnt)
+{
+	/*
+		1.no enable sys call ? sys
+		2.( !lp || lp is non block ) ? sys
+		3.try
+		4.while limit do
+		5.try
+        6.done && return
+	*/
+    HOOK_SYS_FUNC( writev );
+
+    if ( !co_is_enable_sys_hook() ) 
+    {
+        return g_sys_writev_func( socket, iov, iovcnt );
+    }
+
+    rpchook_t *lp = get_by_fd( socket );
+    if ( !lp || (O_NONBLOCK & lp->user_flag ) )
+    {
+        return g_sys_writev_func( socket, iov, iovcnt );
+    }
+
+    int timeout = ( lp->write_timeout.tv_sec * 1000 )
+        + (lp->write_timeout.tv_usec / 1000);
+
+    ssize_t writevret = g_sys_writev_func( socket, iov, iovcnt );
+
+    if ( 0 == writevret )
+    {
+        return writevret;
+    }
+
+    size_t wrotelen = 0;
+    if ( writevret > 0)
+    {
+        wrotelen += writevret;
+    }
+
+    size_t vec_index = 0;
+    size_t iovec_size = (size_t)iovcnt;
+    struct iovec *iov_mutable = const_cast<struct iovec*>(iov);
+    struct iovec *iovec_begin = iov_mutable;
+    struct iovec *iovec_end = iov_mutable + iovec_size;
+
+    ssize_t length = 0;
+    for ( size_t i = 0; i < (size_t)iovcnt; ++i )
+    {
+        length += iov[i].iov_len;
+    }
+
+    while ( wrotelen < length && iovec_size >= vec_index )
+    {
+        struct iovec *pointer_to_iovec;
+        for ( pointer_to_iovec = iovec_begin; pointer_to_iovec < iovec_end; ++pointer_to_iovec )
+        {
+            if ( writevret < pointer_to_iovec->iov_len )
+            {
+                pointer_to_iovec->iov_base = (char*)pointer_to_iovec->iov_base + writevret;
+                pointer_to_iovec->iov_len -= writevret;
+                break;
+            }
+            else
+            {
+                writevret -= pointer_to_iovec->iov_len;
+            }
+        }
+        vec_index = pointer_to_iovec - iov_mutable;
+        iovec_begin = iov_mutable + vec_index;
+
+        struct pollfd pf = { 0 };
+        pf.fd = socket;
+        pf.events = ( POLLOUT | POLLERR | POLLHUP );
+        poll( &pf, 1, timeout );
+        writevret = g_sys_writev_func( socket, iovec_begin, iovec_size - vec_index );
+        if (writevret <= 0 && errno != EAGAIN)
+        {
+            break;
+        }
+
+        wrotelen += writevret;
+    }
+    if ( writevret <= 0 && 0 == wrotelen )
+    {
+        return writevret;
+    }
+    return wrotelen;
 }
 
 ssize_t sendto(int socket, const void *message, size_t length,
