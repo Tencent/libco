@@ -38,6 +38,11 @@
 #include <cstring>
 #endif
 
+#ifdef __APPLE__
+#include <cstring>
+#endif
+
+
 using namespace std;
 
 struct task_t
