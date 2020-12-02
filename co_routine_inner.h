@@ -44,14 +44,13 @@ struct stShareStack_t
 	stStackMem_t** stack_array;
 };
 
-
-
+//协程
 struct stCoRoutine_t
 {
-	stCoRoutineEnv_t *env;
-	pfn_co_routine_t pfn;
-	void *arg;
-	coctx_t ctx;
+	stCoRoutineEnv_t *env;// 协程所在的运行环境，可以理解为，该协程所属的协程管理器，可以对应到golang GMP模型中的M
+	pfn_co_routine_t pfn;// 协程所对应的函数
+	void *arg;// 函数参数
+	coctx_t ctx;// 协程上下文，包括寄存器和栈
 
 	char cStart;
 	char cEnd;

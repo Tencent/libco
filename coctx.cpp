@@ -17,6 +17,10 @@ available.
 * limitations under the License.
 */
 
+/*
+* 协程初始化与创建
+*/
+
 #include "coctx.h"
 #include <stdio.h>
 #include <string.h>
@@ -83,9 +87,11 @@ enum {
 
 // 64 bit
 extern "C" {
-extern void coctx_swap(coctx_t*, coctx_t*) asm("coctx_swap");
+	// 切换协程上下文
+	extern void coctx_swap(coctx_t*, coctx_t*) asm("coctx_swap");
 };
 #if defined(__i386__)
+// 32位的
 int coctx_init(coctx_t* ctx) {
   memset(ctx, 0, sizeof(*ctx));
   return 0;
@@ -107,23 +113,25 @@ int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
   return 0;
 }
 #elif defined(__x86_64__)
+// 64位的
 int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
-  char* sp = ctx->ss_sp + ctx->ss_size - sizeof(void*);
-  sp = (char*)((unsigned long)sp & -16LL);
+  char* sp = ctx->ss_sp + ctx->ss_size - sizeof(void*);// TODO: 这里为什么减去一个指针的大小？
+  sp = (char*)((unsigned long)sp & -16LL);// TODO: 这里为什么还要减16？
 
-  memset(ctx->regs, 0, sizeof(ctx->regs));
-  void** ret_addr = (void**)(sp);
-  *ret_addr = (void*)pfn;
+  memset(ctx->regs, 0, sizeof(ctx->regs));// 清空寄存器
+  void** ret_addr = (void**)(sp);// 将调用栈进行类型转换，转为指向函数指针地址的指针
+  *ret_addr = (void*)pfn;// 将指针指向的地址空间赋值为协程函数指针
 
-  ctx->regs[kRSP] = sp;
+  ctx->regs[kRSP] = sp;// 存调用栈当前指针
 
-  ctx->regs[kRETAddr] = (char*)pfn;
+  ctx->regs[kRETAddr] = (char*)pfn;// 保存函数指针
 
   ctx->regs[kRDI] = (char*)s;
   ctx->regs[kRSI] = (char*)s1;
   return 0;
 }
 
+// 初始化协程上下文，也就是分配上下文结构体大小的空间
 int coctx_init(coctx_t* ctx) {
   memset(ctx, 0, sizeof(*ctx));
   return 0;

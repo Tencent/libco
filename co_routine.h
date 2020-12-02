@@ -28,14 +28,18 @@
 struct stCoRoutine_t;
 struct stShareStack_t;
 
+/*
+* 协程属性
+* 用于每个协程自定义一些配置
+*/
 struct stCoRoutineAttr_t
 {
 	int stack_size;
 	stShareStack_t*  share_stack;
 	stCoRoutineAttr_t()
 	{
-		stack_size = 128 * 1024;
-		share_stack = NULL;
+		stack_size = 128 * 1024;// 默认128K
+		share_stack = NULL;//默认不是共享栈，如果是则必须赋值
 	}
 }__attribute__ ((packed));
 
@@ -43,14 +47,14 @@ struct stCoEpoll_t;
 typedef int (*pfn_co_eventloop_t)(void *);
 typedef void *(*pfn_co_routine_t)( void * );
 
-//2.co_routine
+//2.co_routine，这些都是协程原语
 
 int 	co_create( stCoRoutine_t **co,const stCoRoutineAttr_t *attr,void *(*routine)(void*),void *arg );
 void    co_resume( stCoRoutine_t *co );
 void    co_yield( stCoRoutine_t *co );
 void    co_yield_ct(); //ct = current thread
 void    co_release( stCoRoutine_t *co );
-void    co_reset(stCoRoutine_t * co); 
+void    co_reset(stCoRoutine_t * co);// TODO: 新增：
 
 stCoRoutine_t *co_self();
 

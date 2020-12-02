@@ -42,12 +42,17 @@
 
 extern "C"
 {
+	// 保存当前上下文到第一个参数，并激活第二个参数的上下文
 	extern void coctx_swap( coctx_t *,coctx_t* ) asm("coctx_swap");
 };
 using namespace std;
-stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env );
+stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env );// TODO: 根据当前
 struct stCoEpoll_t;
 
+/*
+* 线程所管理的协程的运行环境
+* 一个线程只有一个这个属性
+*/
 struct stCoRoutineEnv_t
 {
 	stCoRoutine_t *pCallStack[ 128 ];
@@ -902,7 +907,7 @@ void FreeEpoll( stCoEpoll_t *ctx )
 
 stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env )
 {
-	return env->pCallStack[ env->iCallStackSize - 1 ];
+	return env->pCallStack[ env->iCallStackSize - 1 ];// 调用栈的栈顶即为当前协程
 }
 stCoRoutine_t *GetCurrThreadCo( )
 {
