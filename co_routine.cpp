@@ -42,21 +42,25 @@
 
 extern "C"
 {
-	// 保存当前上下文到第一个参数，并激活第二个参数的上下文
-	extern void coctx_swap( coctx_t *,coctx_t* ) asm("coctx_swap");
+	// TODO: 保存当前上下文到第一个参数，并激活第二个参数的上下文
+	extern void coctx_swap( coctx_t *,coctx_t* ) asm("coctx_swap");// TODO: 这里没看懂，extern本身不就实现了函数声明吗，为什么还要加asm汇编
 };
 using namespace std;
-stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env );// TODO: 根据当前
+stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env );// 根据线程的运行环境取当前协程
 struct stCoEpoll_t;
 
 /*
 * 线程所管理的协程的运行环境
 * 一个线程只有一个这个属性
+* 包括协程调用栈、epoll协程调度器、
 */
 struct stCoRoutineEnv_t
 {
+	// 这里实际上维护的是个调用栈
+	// 最后一位是当前运行的协程，前一位是当前协程的父协程(即resume该协程的协程)
+	// 可以看出，libco只能支持128层协程的嵌套调用
 	stCoRoutine_t *pCallStack[ 128 ];
-	int iCallStackSize;
+	int iCallStackSize;// 当前调用栈长度
 	stCoEpoll_t *pEpoll;
 
 	//for copy stack log lastco and nextco
@@ -905,6 +909,7 @@ void FreeEpoll( stCoEpoll_t *ctx )
 	free( ctx );
 }
 
+// 从协程的运行环境中取当前协程 
 stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env )
 {
 	return env->pCallStack[ env->iCallStackSize - 1 ];// 调用栈的栈顶即为当前协程
