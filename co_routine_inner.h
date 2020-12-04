@@ -27,20 +27,23 @@ struct stCoSpec_t
 	void *value;
 };
 
+/**
+* 指向一个共享栈的内存空间
+* 一个进程或者线程栈的地址，是从高位到低位安排数据的，所以stack_bp是栈底，stack_buffer是栈顶
+*/
 struct stStackMem_t
 {
-	stCoRoutine_t* occupy_co;
-	int stack_size;
-	char* stack_bp; //stack_buffer + stack_size
-	char* stack_buffer;
-
+	stCoRoutine_t* occupy_co;// 当前正在使用该共享栈的协程
+	int stack_size;// 栈的大小
+	char* stack_bp; //stack_buffer + stack_size 栈底
+	char* stack_buffer;// 栈顶
 };
 
 struct stShareStack_t
 {
-	unsigned int alloc_idx;
-	int stack_size;
-	int count;
+	unsigned int alloc_idx;// 当前正在使用的共享站的index，这个的值可能大于count，大于则取模从头开始循环
+	int stack_size;// 共享栈的大小，这里的大小指的是一个stStackMem_t*的大小，和stStackMem_t里的一样
+	int count;// 共享栈的个数，共享栈可以为多个，所以以下为共享栈的数组
 	stStackMem_t** stack_array;
 };
 
@@ -54,9 +57,9 @@ struct stCoRoutine_t
 
 	char cStart;
 	char cEnd;
-	char cIsMain;
-	char cEnableSysHook;
-	char cIsShareStack;
+	char cIsMain;// 是否是主协程
+	char cEnableSysHook;// TODO: 
+	char cIsShareStack;// 是否开启共享栈
 
 	void *pvEnv;
 

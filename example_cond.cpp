@@ -71,7 +71,7 @@ int main()
 	env->cond = co_cond_alloc();
 
 	stCoRoutine_t* consumer_routine;
-	co_create(&consumer_routine, NULL, Consumer, env);
+	co_create(&consumer_routine, NULL, Consumer, env);// 这里传指针的地址就是为了不成为指针值传递，导致无法修改
 	co_resume(consumer_routine);
 
 	stCoRoutine_t* producer_routine;

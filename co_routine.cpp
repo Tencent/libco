@@ -72,7 +72,6 @@ void co_log_err( const char *fmt,... )
 {
 }
 
-
 #if defined( __LIBCO_RDTSCP__) 
 static unsigned long long counter(void)
 {
@@ -275,20 +274,22 @@ void inline Join( TLink*apLink,TLink *apOther )
 }
 
 /////////////////for copy stack //////////////////////////
+// 分配共享栈内存
 stStackMem_t* co_alloc_stackmem(unsigned int stack_size)
 {
 	stStackMem_t* stack_mem = (stStackMem_t*)malloc(sizeof(stStackMem_t));
-	stack_mem->occupy_co= NULL;
+	stack_mem->occupy_co= NULL;// 一开始没协程
 	stack_mem->stack_size = stack_size;
 	stack_mem->stack_buffer = (char*)malloc(stack_size);
-	stack_mem->stack_bp = stack_mem->stack_buffer + stack_size;
+	stack_mem->stack_bp = stack_mem->stack_buffer + stack_size;// 栈底，高地址
 	return stack_mem;
 }
 
+// 分配count个共享栈的空间，每个栈空间大小为stack_size
 stShareStack_t* co_alloc_sharestack(int count, int stack_size)
 {
 	stShareStack_t* share_stack = (stShareStack_t*)malloc(sizeof(stShareStack_t));
-	share_stack->alloc_idx = 0;
+	share_stack->alloc_idx = 0;// TODO: 默认从第0个共享栈开始使用？
 	share_stack->stack_size = stack_size;
 
 	//alloc stack array
@@ -302,6 +303,8 @@ stShareStack_t* co_alloc_sharestack(int count, int stack_size)
 	return share_stack;
 }
 
+// 在共享栈中，获取协程的栈内存
+// TODO: 为什么index要递增？
 static stStackMem_t* co_get_stackmem(stShareStack_t* share_stack)
 {
 	if (!share_stack)
@@ -314,26 +317,30 @@ static stStackMem_t* co_get_stackmem(stShareStack_t* share_stack)
 	return share_stack->stack_array[idx];
 }
 
-
 // ----------------------------------------------------------------------------
 struct stTimeoutItemLink_t;
 struct stTimeoutItem_t;
+
+// TODO: epoll结构体？
 struct stCoEpoll_t
 {
-	int iEpollFd;
-	static const int _EPOLL_SIZE = 1024 * 10;
+	int iEpollFd;// epoll的ID
+	static const int _EPOLL_SIZE = 1024 * 10;// epoll大小固定为10k
 
-	struct stTimeout_t *pTimeout;
+	struct stTimeout_t *pTimeout;// 超时管理器
 
-	struct stTimeoutItemLink_t *pstTimeoutList;
+	struct stTimeoutItemLink_t *pstTimeoutList;// 目前已超时的事件，仅仅作为中转使用，最后会合并到active上
 
-	struct stTimeoutItemLink_t *pstActiveList;
+	struct stTimeoutItemLink_t *pstActiveList;// 正在处理的事件
 
-	co_epoll_res *result; 
+	co_epoll_res *result;
 
 };
+
 typedef void (*OnPreparePfn_t)( stTimeoutItem_t *,struct epoll_event &ev, stTimeoutItemLink_t *active );
 typedef void (*OnProcessPfn_t)( stTimeoutItem_t *);
+
+// 超时链表中的一项
 struct stTimeoutItem_t
 {
 
@@ -341,9 +348,9 @@ struct stTimeoutItem_t
 	{
 		eMaxTimeout = 40 * 1000 //40s
 	};
-	stTimeoutItem_t *pPrev;
-	stTimeoutItem_t *pNext;
-	stTimeoutItemLink_t *pLink;
+	stTimeoutItem_t *pPrev;// 前驱
+	stTimeoutItem_t *pNext;// 后继
+	stTimeoutItemLink_t *pLink;// 该链表项的首指针，也就代表该链表项所在链表
 
 	unsigned long long ullExpireTime;
 
@@ -351,21 +358,33 @@ struct stTimeoutItem_t
 	OnProcessPfn_t pfnProcess;
 
 	void *pArg; // routine 
-	bool bTimeout;
+	
+	bool bTimeout;// 是否已经超时
 };
+// 超时链表
 struct stTimeoutItemLink_t
 {
-	stTimeoutItem_t *head;
-	stTimeoutItem_t *tail;
-
+	stTimeoutItem_t *head;// 头指针
+	stTimeoutItem_t *tail;// 尾指针
 };
+/*
+* 毫秒级的超时管理器
+* 使用时间轮实现
+* 但是是有限制的，最长超时时间不可以超过iItemSize毫秒
+*/
 struct stTimeout_t
 {
-	stTimeoutItemLink_t *pItems;
-	int iItemSize;
+	/*
+	   时间轮
+	   超时事件数组，总长度为iItemSize,每一项代表1毫秒，为一个链表，代表这个时间所超时的事件。
 
-	unsigned long long ullStart;
-	long long llStartIdx;
+	   这个数组在使用的过程中，会使用取模的方式，把它当做一个循环数组来使用，虽然并不是用循环链表来实现的
+	*/
+	stTimeoutItemLink_t *pItems;
+	int iItemSize;// TODO: 默认为60*1000ms，也就是1min
+
+	unsigned long long ullStart;//目前的超时管理器最早的时间
+	long long llStartIdx;//目前最早的时间所对应的pItems上的索引
 };
 stTimeout_t *AllocTimeout( int iSize )
 {
@@ -379,6 +398,8 @@ stTimeout_t *AllocTimeout( int iSize )
 
 	return lp;
 }
+
+// 释放超时管理器内存空间，先释放数组的空间
 void FreeTimeout( stTimeout_t *apTimeout )
 {
 	free( apTimeout->pItems );
