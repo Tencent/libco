@@ -46,11 +46,11 @@ DYNAMICLIBPATH=$(SRCROOT)/solib
 INCLS += -I$(SRCROOT)
 
 ## default links
-ifeq ($(LINKS_DYNAMIC), 1)
-LINKS += -L$(DYNAMICLIBPATH) -L$(STATICLIBPATH)
-else
-LINKS += -L$(STATICLIBPATH)
-endif
+#ifeq ($(LINKS_DYNAMIC), 1)
+#LINKS += -L$(DYNAMICLIBPATH) -L$(STATICLIBPATH)
+#else
+#LINKS += -L$(STATICLIBPATH)
+#endif
 
 CPPSRCS  = $(wildcard *.cpp)
 CSRCS  = $(wildcard *.c)

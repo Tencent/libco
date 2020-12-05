@@ -15,6 +15,7 @@ enable_language(C ASM)
 
 # Add source files
 set(SOURCE_FILES
+        co_comm.cpp
         co_epoll.cpp
         co_hook_sys_call.cpp
         co_routine.cpp
@@ -41,7 +42,8 @@ set_target_properties(colib_shared PROPERTIES VERSION ${LIBCO_VERSION} SOVERSION
 # Macro for add example target
 macro(add_example_target EXAMPLE_TARGET)
     add_executable("example_${EXAMPLE_TARGET}" "example_${EXAMPLE_TARGET}.cpp")
-    target_link_libraries("example_${EXAMPLE_TARGET}" colib_static pthread dl)
+#    target_link_libraries("example_${EXAMPLE_TARGET}" colib_static pthread dl)
+    target_link_libraries("example_${EXAMPLE_TARGET}" colib_shared pthread dl)
 endmacro(add_example_target)
 
 add_example_target(closure)
