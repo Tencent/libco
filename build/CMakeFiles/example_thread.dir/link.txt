@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/example_thread.dir/example_thread.cpp.o  -o example_thread -Wl,-rpath,/root/libco/build libcolib.so.0.5 -lpthread -ldl 

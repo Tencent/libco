@@ -62,23 +62,26 @@ static int SetNonBlock(int iSock)
 
 static void SetAddr(const char *pszIP,const unsigned short shPort,struct sockaddr_in &addr)
 {
-	bzero(&addr,sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(shPort);
+	bzero(&addr,sizeof(addr)); // 先清空
+	addr.sin_family = AF_INET; // sockaddr_in是socket地址描述符的一种，其sin_family固定为AF_INET（IPv4）
+	/*这里解决了主机地址大小端不一致导致无法跨主机通信的问题。
+	  数据的顺序与CPU有关，与OS无关，Intel是小尾端，IBM是是大尾端。
+	  举例：16的二进制为0x1000，Intel存储时为0010，也就是高位数据放低地址位，IBM的存储顺序则与阅读习惯一致
+	*/
+	addr.sin_port = htons(shPort); // HBO转NBO
 	int nIP = 0;
 	if( !pszIP || '\0' == *pszIP   
 	    || 0 == strcmp(pszIP,"0") || 0 == strcmp(pszIP,"0.0.0.0") 
 		|| 0 == strcmp(pszIP,"*") 
 	  )
 	{
-		nIP = htonl(INADDR_ANY);
+		nIP = htonl(INADDR_ANY); // 接收所有网卡的指定端口的连接上发来的数据包
 	}
 	else
 	{
-		nIP = inet_addr(pszIP);
+		nIP = inet_addr(pszIP); // 将点分十进制的IP转为一个u_long
 	}
 	addr.sin_addr.s_addr = nIP;
-
 }
 
 static int CreateTcpSocket(const unsigned short shPort  = 0 ,const char *pszIP  = "*" ,bool bReuse  = false )
@@ -110,10 +113,10 @@ static void *poll_routine( void *arg )
 {
 	co_enable_hook_sys();
 
-	vector<task_t> &v = *(vector<task_t>*)arg;
+	vector<task_t> &v = *(vector<task_t>*)arg; // 左值引用arg指针指向的vector变量
 	for(size_t i=0;i<v.size();i++)
 	{
-		int fd = CreateTcpSocket();
+		int fd = CreateTcpSocket(); // 这里全传缺省值，
 		SetNonBlock( fd );
 		v[i].fd = fd;
 

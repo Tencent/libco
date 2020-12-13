@@ -156,6 +156,7 @@ static pid_t GetPid()
 	return p ? *(pid_t*)(p + 18) : getpid();
 }
 */
+// 将一个节点从其所在的链表中删除
 template <class T,class TLink>
 void RemoveFromLink(T *ap)
 {
@@ -189,13 +190,14 @@ void RemoveFromLink(T *ap)
 	}
 	else
 	{
-		ap->pNext->pPrev = ap->pPrev;
+		ap->pNext->pPrev = ap->pPrev;// TODO: 这里和从头部删除怎么处理不同？是上面判断多余了，还是下面有nullptr风险？
 	}
 
 	ap->pPrev = ap->pNext = NULL;
 	ap->pLink = NULL;
 }
 
+// 向链表尾部插入一个节点
 template <class TNode,class TLink>
 void inline AddTail(TLink*apLink,TNode *ap)
 {
@@ -217,6 +219,7 @@ void inline AddTail(TLink*apLink,TNode *ap)
 	}
 	ap->pLink = apLink;
 }
+// 将头节点从双向链表中删除（但是不释放空间，因为在实现上并非真正的链表）
 template <class TNode,class TLink>
 void inline PopHead( TLink*apLink )
 {
@@ -486,26 +489,34 @@ static int CoRoutineFunc( stCoRoutine_t *co,void * )
 	return 0;
 }
 
-
-
+/**
+* 根据协程管理器env, 新建一个协程
+* 
+* @param env - (input) 协程所在线程的环境
+* @param attr - (input) 协程属性，目前主要是共享栈 
+* @param pfn - (input) 协程所运行的函数
+* @param arg - (input) 协程运行函数的参数
+*/
 struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAttr_t* attr,
 		pfn_co_routine_t pfn,void *arg )
 {
 
+	// 初始化属性。并且给默认值
 	stCoRoutineAttr_t at;
-	if( attr )
+	if( attr ) // 用外部传入的参数来初始化协程参数
 	{
 		memcpy( &at,attr,sizeof(at) );
 	}
-	if( at.stack_size <= 0 )
+	if( at.stack_size <= 0 ) // 外部参数未给栈大小赋值，赋128K
 	{
 		at.stack_size = 128 * 1024;
 	}
-	else if( at.stack_size > 1024 * 1024 * 8 )
+	else if( at.stack_size > 1024 * 1024 * 8 ) // 栈大小最大不能超过8M
 	{
 		at.stack_size = 1024 * 1024 * 8;
 	}
 
+	// TODO: 相当于低12位向上取整进位，为啥这么做？
 	if( at.stack_size & 0xFFF ) 
 	{
 		at.stack_size &= ~0xFFF;
@@ -515,7 +526,6 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 	stCoRoutine_t *lp = (stCoRoutine_t*)malloc( sizeof(stCoRoutine_t) );
 	
 	memset( lp,0,(long)(sizeof(stCoRoutine_t))); 
-
 
 	lp->env = env;
 	lp->pfn = pfn;
@@ -548,12 +558,24 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 	return lp;
 }
 
+
+/**
+* 创建一个协程对象
+* 
+* @param ppco - (output) 协程的地址，未初始化，需要在此函数中将其申请内存空间以及初始化工作
+* @param attr - (input) 协程属性，目前主要是共享栈 
+* @param pfn - (input) 协程所运行的函数
+* @param arg - (input) 协程运行函数的参数
+*/
 int co_create( stCoRoutine_t **ppco,const stCoRoutineAttr_t *attr,pfn_co_routine_t pfn,void *arg )
 {
+	// 查找当前线程的管理环境
 	if( !co_get_curr_thread_env() ) 
 	{
+		// 如果找不到，则初始化协程
 		co_init_curr_thread_env();
 	}
+	// 根据协程的运行环境，来创建一个协程
 	stCoRoutine_t *co = co_create_env( co_get_curr_thread_env(), attr, pfn,arg );
 	*ppco = co;
 	return 0;
@@ -596,8 +618,6 @@ void co_resume( stCoRoutine_t *co )
 	}
 	env->pCallStack[ env->iCallStackSize++ ] = co;
 	co_swap( lpCurrRoutine, co );
-
-
 }
 
 
@@ -767,6 +787,7 @@ static short EpollEvent2Poll( uint32_t events )
 	return e;
 }
 
+// 线程私有变量，一个线程维护一个独立的
 static __thread stCoRoutineEnv_t* gCoEnvPerThread = NULL;
 
 void co_init_curr_thread_env()
@@ -1147,7 +1168,8 @@ static void OnSignalProcessEvent( stTimeoutItem_t * ap )
 	co_resume( co );
 }
 
-stCoCondItem_t *co_cond_pop( stCoCond_t *link );
+stCoCondItem_t *co_cond_pop( stCoCond_t *link ); // 提前把空结构体声明放前面是防止编译报错
+// 
 int co_cond_signal( stCoCond_t *si )
 {
 	stCoCondItem_t * sp = co_cond_pop( si );
@@ -1215,7 +1237,7 @@ int co_cond_free( stCoCond_t * cc )
 	return 0;
 }
 
-
+// 将信号量结构体链表中的头节点弹出，并返回弹出的头指针
 stCoCondItem_t *co_cond_pop( stCoCond_t *link )
 {
 	stCoCondItem_t *p = link->head;

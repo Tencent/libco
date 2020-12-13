@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcolib.a  CMakeFiles/colib_static.dir/co_comm.cpp.o CMakeFiles/colib_static.dir/co_epoll.cpp.o CMakeFiles/colib_static.dir/co_hook_sys_call.cpp.o CMakeFiles/colib_static.dir/co_routine.cpp.o CMakeFiles/colib_static.dir/coctx.cpp.o CMakeFiles/colib_static.dir/coctx_swap.S.o
+/usr/bin/ranlib libcolib.a

@@ -50,15 +50,15 @@ struct stShareStack_t
 //协程
 struct stCoRoutine_t
 {
-	stCoRoutineEnv_t *env;// 协程所在的运行环境，可以理解为，该协程所属的协程管理器，可以对应到golang GMP模型中的M
+	stCoRoutineEnv_t *env;// 协程所在的运行环境
 	pfn_co_routine_t pfn;// 协程所对应的函数
 	void *arg;// 函数参数
 	coctx_t ctx;// 协程上下文，包括寄存器和栈
 
-	char cStart;
+	char cStart;// 是否开始执行
 	char cEnd;
 	char cIsMain;// 是否是主协程
-	char cEnableSysHook;// TODO: 
+	char cEnableSysHook;// 是否开启hook
 	char cIsShareStack;// 是否开启共享栈
 
 	void *pvEnv;
