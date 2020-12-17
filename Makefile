@@ -41,6 +41,8 @@ COLIB_OBJS=co_epoll.o co_routine.o co_hook_sys_call.o coctx_swap.o coctx.o co_co
 PROGS = colib example_poll example_echosvr example_echocli example_thread  example_cond example_specific example_copystack example_closure example_setenv
 
 all:$(PROGS)
+# 这里最好显式写明all是个伪目标，不写明的话，make可以通过隐式规则推导得到all是个伪目标
+.PHONY:all
 
 colib:libcolib.a libcolib.so
 

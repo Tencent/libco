@@ -23,6 +23,7 @@ MAIL_ROOT=.
 SRCROOT=.
 
 ##define the compliers
+# CXX指g++ CC指gcc
 CPP = $(CXX)
 AR = ar -rc
 RANLIB = ranlib
@@ -70,7 +71,9 @@ CPPCOMPILE = $(CPPCOMPI) $< $(FLAGS) $(INCLS) $(MTOOL_INCL) -o $@
 CCCOMPILE = $(CCCOMPI) $< $(FLAGS) $(INCLS) $(MTOOL_INCL) -o $@
 
 ARSTATICLIB = $(AR) $@.tmp $^ $(AR_FLAGS); \
+# 如果上一步命令的执行结果($?)不为0，也就是不成功，则退出
 			  if [ $$? -ne 0 ]; then exit 1; fi; \
+# test -d判断是否是个目录，是则短路，不是则创建
 			  test -d $(STATICLIBPATH) || mkdir -p $(STATICLIBPATH); \
 			  mv -f $@.tmp $(STATICLIBPATH)/$@;
 
@@ -79,6 +82,8 @@ BUILDSHARELIB = $(CPPSHARE) $@.tmp $^ $(BS_FLAGS); \
 				test -d $(DYNAMICLIBPATH) || mkdir -p $(DYNAMICLIBPATH); \
 				mv -f $@.tmp $(DYNAMICLIBPATH)/$@;
 
+# 这里包括下面的.c.o都是前缀规则（suffix rule），这儿表示.cpp用g++编译、.c用gcc编译
+# 另外，这种写法根据gnu官网的说法是过时了的，官网推荐用%.o:%.c（pattern rule）
 .cpp.o:
 	$(CPPCOMPILE)
 .c.o:
