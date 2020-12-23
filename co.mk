@@ -70,10 +70,10 @@ CLEAN = rm -f *.o
 CPPCOMPILE = $(CPPCOMPI) $< $(FLAGS) $(INCLS) $(MTOOL_INCL) -o $@
 CCCOMPILE = $(CCCOMPI) $< $(FLAGS) $(INCLS) $(MTOOL_INCL) -o $@
 
-ARSTATICLIB = $(AR) $@.tmp $^ $(AR_FLAGS); \
 # 如果上一步命令的执行结果($?)不为0，也就是不成功，则退出
-			  if [ $$? -ne 0 ]; then exit 1; fi; \
 # test -d判断是否是个目录，是则短路，不是则创建
+ARSTATICLIB = $(AR) $@.tmp $^ $(AR_FLAGS); \
+			  if [ $$? -ne 0 ]; then exit 1; fi; \
 			  test -d $(STATICLIBPATH) || mkdir -p $(STATICLIBPATH); \
 			  mv -f $@.tmp $(STATICLIBPATH)/$@;
 
