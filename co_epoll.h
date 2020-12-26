@@ -26,21 +26,45 @@
 #include <time.h>
 #include <time.h>
 
-#if !defined( __APPLE__ ) && !defined( __FreeBSD__ )
+#if !defined(__APPLE__) && !defined(__FreeBSD__)
 
 #include <sys/epoll.h>
 
+/*libco对epoll和kqueue进行了统一接口的封装，接口的方式与epoll类似，这里为了适应epoll和kqueue这两种IO模型，
+*co_epoll_res就把epoll和kqueue的结果包装在同一个结构体里面
+*/
 struct co_epoll_res
 {
 	int size;
-	struct epoll_event *events;
-	struct kevent *eventlist;
+	struct epoll_event *events; //epoll_event是glibc定义的结构体
+	struct kevent *eventlist;	//TODO: kevent的定义找不到，百度之后发现好像是和kqueue有关。参考链接：https://www.freebsd.org/cgi/man.cgi?query=kevent&sektion=2
+								/*
+	struct kevent {
+		uintptr_t   ident;      // identifier for this event 
+		int16_t     filter;     // filter for event 
+		uint16_t    flags;      // general flags 
+		uint32_t    fflags;     // filter-specific flags 
+		intptr_t    data;       // filter-specific data 
+		void        *udata;     // opaque user data identifier 
+	};
+	ident 是事件唯一的 key，在 socket 使用中，它是 socket 的 fd 句柄
+	filter 是事件的类型，有 15 种，其中几种常用的是 
+		EVFILT_READ   socket 可读事件
+		EVFILT_WRITE  socket 可写事件
+		EVFILT_SIGNAL  unix 系统的各种信号
+		EVFILT_TIMER  定时器事件
+		EVFILT_USER  用户自定义的事件
+	flags 操作方式，EV_ADD 添加，EV_DELETE 删除，EV_ENABLE 激活，EV_DISABLE 不激活
+	fflags 第二种操作方式，NOTE_TRIGGER 立即激活等等
+	data int 型的用户数据，socket 里面它是可读写的数据长度
+	udata 指针类型的数据，你可以携带任何想携带的附加数据。比如对象
+	*/
 };
-int 	co_epoll_wait( int epfd,struct co_epoll_res *events,int maxevents,int timeout );
-int 	co_epoll_ctl( int epfd,int op,int fd,struct epoll_event * );
-int 	co_epoll_create( int size );
-struct 	co_epoll_res *co_epoll_res_alloc( int n );
-void 	co_epoll_res_free( struct co_epoll_res * );
+int co_epoll_wait(int epfd, struct co_epoll_res *events, int maxevents, int timeout);
+int co_epoll_ctl(int epfd, int op, int fd, struct epoll_event *);
+int co_epoll_create(int size);
+struct co_epoll_res *co_epoll_res_alloc(int n);
+void co_epoll_res_free(struct co_epoll_res *);
 
 #else
 
@@ -54,8 +78,8 @@ enum EPOLL_EVENTS
 	EPOLLERR = 0X008,
 	EPOLLHUP = 0X010,
 
-    EPOLLRDNORM = 0x40,
-    EPOLLWRNORM = 0x004,
+	EPOLLRDNORM = 0x40,
+	EPOLLWRNORM = 0x004,
 };
 #define EPOLL_CTL_ADD 1
 #define EPOLL_CTL_DEL 2
@@ -81,13 +105,11 @@ struct co_epoll_res
 	struct epoll_event *events;
 	struct kevent *eventlist;
 };
-int 	co_epoll_wait( int epfd,struct co_epoll_res *events,int maxevents,int timeout );
-int 	co_epoll_ctl( int epfd,int op,int fd,struct epoll_event * );
-int 	co_epoll_create( int size );
-struct 	co_epoll_res *co_epoll_res_alloc( int n );
-void 	co_epoll_res_free( struct co_epoll_res * );
+int co_epoll_wait(int epfd, struct co_epoll_res *events, int maxevents, int timeout);
+int co_epoll_ctl(int epfd, int op, int fd, struct epoll_event *);
+int co_epoll_create(int size);
+struct co_epoll_res *co_epoll_res_alloc(int n);
+void co_epoll_res_free(struct co_epoll_res *);
 
 #endif
 #endif
-
-
