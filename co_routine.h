@@ -42,6 +42,8 @@ struct stCoRoutineAttr_t
 		share_stack = NULL;		 //默认不是共享栈，如果是则必须赋值
 	}
 } __attribute__((packed));
+//__attribute__ ((packed)) 的作用就是告诉编译器，取消结构在编译过程中的优化对齐，按照实际占用字节数进行对齐，是GCC特有的语法。这个功能是跟操作系统没关系，跟编译器有关，gcc编译器不是紧凑模式的。
+//编译器对结构在编译过程中会优化对齐,由于编译器的内存对齐,当一个char变量独立存在时,会分配一个int大小的空间,当两个char连续存在时,会给两个char分配一个int大小的空间.
 
 struct stCoEpoll_t;
 //这里定义了两个函数指针类型，使用方法pfn_co_eventloop_t xxx，表示xxx是一个返回值为int，参数为void*型的函数。

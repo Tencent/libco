@@ -28,17 +28,17 @@ struct stTask_t
 };
 struct stEnv_t
 {
-	stCoCond_t* cond;
-	queue<stTask_t*> task_queue;
+	stCoCond_t *cond;
+	queue<stTask_t *> task_queue;
 };
-void* Producer(void* args)
+void *Producer(void *args)
 {
 	co_enable_hook_sys();
-	stEnv_t* env=  (stEnv_t*)args;
+	stEnv_t *env = (stEnv_t *)args;
 	int id = 0;
 	while (true)
 	{
-		stTask_t* task = (stTask_t*)calloc(1, sizeof(stTask_t));
+		stTask_t *task = (stTask_t *)calloc(1, sizeof(stTask_t));
 		task->id = id++;
 		env->task_queue.push(task);
 		printf("%s:%d produce task %d\n", __func__, __LINE__, task->id);
@@ -47,18 +47,21 @@ void* Producer(void* args)
 	}
 	return NULL;
 }
-void* Consumer(void* args)
+void *Consumer(void *args)
 {
 	co_enable_hook_sys();
-	stEnv_t* env = (stEnv_t*)args;
+	stEnv_t *env = (stEnv_t *)args;
 	while (true)
 	{
 		if (env->task_queue.empty())
 		{
+			/*wait往cond链表中添加一个stCondItem_t节点，stCondItem_t有timeout项，timeout有当前协程的信息，
+			*然后yield协程，当有signal时，signal将timeout项放入active链表，在co_eventloop中执行OnSignalProcessEvent(co)，继续执行协程
+			*/
 			co_cond_timedwait(env->cond, -1);
 			continue;
 		}
-		stTask_t* task = env->task_queue.front();
+		stTask_t *task = env->task_queue.front();
 		env->task_queue.pop();
 		printf("%s:%d consume task %d\n", __func__, __LINE__, task->id);
 		free(task);
@@ -67,17 +70,17 @@ void* Consumer(void* args)
 }
 int main()
 {
-	stEnv_t* env = new stEnv_t;
+	stEnv_t *env = new stEnv_t;
 	env->cond = co_cond_alloc();
 
-	stCoRoutine_t* consumer_routine;
-	co_create(&consumer_routine, NULL, Consumer, env);// 这里传指针的地址就是为了不成为指针值传递，导致无法修改
+	stCoRoutine_t *consumer_routine;
+	co_create(&consumer_routine, NULL, Consumer, env); // 这里传指针的地址就是为了不成为指针值传递，导致无法修改
 	co_resume(consumer_routine);
 
-	stCoRoutine_t* producer_routine;
+	stCoRoutine_t *producer_routine;
 	co_create(&producer_routine, NULL, Producer, env);
 	co_resume(producer_routine);
-	
+
 	co_eventloop(co_get_epoll_ct(), NULL, NULL);
 	return 0;
 }

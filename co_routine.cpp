@@ -372,7 +372,7 @@ struct stTimeoutItem_t
 
 	unsigned long long ullExpireTime; //超时事件的到期时间
 
-	OnPreparePfn_t pfnPrepare;
+	OnPreparePfn_t pfnPrepare; //TODO:这个函数是做什么用的啊？什么时候会用到？
 	OnProcessPfn_t pfnProcess;
 
 	void *pArg; // routine
@@ -397,7 +397,7 @@ struct stTimeout_t
 	   超时事件数组，总长度为iItemSize,每一项代表1毫秒，为一个链表，代表这个时间所超时的事件。
 	   这个数组在使用的过程中，会使用取模的方式，把它当做一个循环数组来使用，虽然并不是用循环链表来实现的
 	*/
-	stTimeoutItemLink_t *pItems; //链表，初始化时指向一块 sizeof(stTimeoutItemLink_t) * lp->iItemSize 大小的内存
+	stTimeoutItemLink_t *pItems; //指针数组，初始化时指向一块 sizeof(stTimeoutItemLink_t) * lp->iItemSize 大小的内存
 
 	/* TODO: 默认为60*1000ms，也就是1min 
 	*iItemSize可以理解为时间轮的刻度数，每1ms占用一个刻度，同一过期时间的事件放在同一个刻度的链表里
@@ -412,7 +412,7 @@ stTimeout_t *AllocTimeout(int iSize)
 	stTimeout_t *lp = (stTimeout_t *)calloc(1, sizeof(stTimeout_t));
 
 	lp->iItemSize = iSize;
-	//TODO:感觉有点绕这里，pItems指向一块内存，这块内存由iItemSize 个 stTimeoutItemLink_t（链表）组成，pItems+1指向第1条链表（从0开始计数）
+	//TODO:感觉有点绕这里，pItems指向一块内存，这块内存由 iItemSize 个 stTimeoutItemLink_t（链表）组成，pItems+1指向第1条链表（从0开始计数）
 	lp->pItems = (stTimeoutItemLink_t *)calloc(1, sizeof(stTimeoutItemLink_t) * lp->iItemSize);
 
 	lp->ullStart = GetTickMS();
@@ -464,7 +464,7 @@ int AddTimeout(stTimeout_t *apTimeout, stTimeoutItem_t *apItem, unsigned long lo
 	}
 	unsigned long long diff = apItem->ullExpireTime - apTimeout->ullStart;
 
-	//过期时间差超过了时间轮刻度
+	//过期时间差超过了时间轮刻度，但还是添加到了队列中，有一个取模的操作，所以co_eventloop还要通过ullExpireTime再次判断是否真的过期
 	if (diff >= (unsigned long long)apTimeout->iItemSize)
 	{
 		diff = apTimeout->iItemSize - 1;
@@ -641,6 +641,7 @@ void co_release(stCoRoutine_t *co)
 
 void co_swap(stCoRoutine_t *curr, stCoRoutine_t *pending_co);
 
+/*运行co协程：从协程栈中取出栈顶协程，也就是当前当前运行的协程cur，将cur与co切换*/
 void co_resume(stCoRoutine_t *co)
 {
 	stCoRoutineEnv_t *env = co->env;
@@ -683,7 +684,7 @@ void co_yield_env(stCoRoutineEnv_t *env)
 	stCoRoutine_t *last = env->pCallStack[env->iCallStackSize - 2];
 	stCoRoutine_t *curr = env->pCallStack[env->iCallStackSize - 1];
 
-	//TODO:协程调用yield表示当前协程已经执行完任务，所以iCallStackSize减1，libco是非抢占式的协程？
+	//TODO:协程调用yield
 	env->iCallStackSize--;
 
 	co_swap(curr, last);
@@ -838,6 +839,7 @@ void co_init_curr_thread_env()
 	stCoRoutineEnv_t *env = gCoEnvPerThread;
 
 	env->iCallStackSize = 0;
+	//TODO:self协程会被执行吗？
 	struct stCoRoutine_t *self = co_create_env(env, NULL, NULL, NULL);
 	self->cIsMain = 1;
 
@@ -890,6 +892,7 @@ void co_eventloop(stCoEpoll_t *ctx, pfn_co_eventloop_t pfn, void *arg)
 
 	for (;;)
 	{
+		//epoll_wait的timeout的单位是ms，条件变量也是通过这个来触发的，没有时间发生超时就自动返回，活跃队列中的事件就触发
 		int ret = co_epoll_wait(ctx->iEpollFd, result, stCoEpoll_t::_EPOLL_SIZE, 1);
 
 		stTimeoutItemLink_t *active = (ctx->pstActiveList);
@@ -928,7 +931,7 @@ void co_eventloop(stCoEpoll_t *ctx, pfn_co_eventloop_t pfn, void *arg)
 		{
 
 			PopHead<stTimeoutItem_t, stTimeoutItemLink_t>(active);
-			if (lp->bTimeout && now < lp->ullExpireTime)
+			if (lp->bTimeout && now < lp->ullExpireTime) //TODO:这里的判断应该是lp还没有过期，要送回到链表中，这是因为超时时间可能特别大，取模后造成超时的假象。
 			{
 				int ret = AddTimeout(ctx->pTimeout, lp, now);
 				if (!ret)
