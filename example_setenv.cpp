@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <queue>
 #include "co_routine.h"
+#include <sstream> 
+
 
 const char* CGI_ENV_HOOK_LIST [] = 
 {
@@ -39,16 +41,17 @@ void SetAndGetEnv(int iRoutineID)
 	//use poll as sleep
 	poll(NULL, 0, 500);
 
-	char sBuf[128];
-	sprintf(sBuf, "cgi_routine_%d", iRoutineID);
-	int ret = setenv("CGINAME", sBuf, 1);
+	 std::ostringstream ostr;
+    ostr << "iRoutineID: " << iRoutineID;
+    const char *pstr =  ostr.str().c_str();
+    int ret = setenv("CGINAME", pstr, 1);
 	if (ret)
 	{
 		printf("%s:%d set env err ret %d errno %d %s\n", __func__, __LINE__,
 				ret, errno, strerror(errno));
 		return;
 	}
-	printf("routineid %d set env CGINAME %s\n", iRoutineID, sBuf);
+	printf("routineid %d set env CGINAME %s\n", iRoutineID, pstr);
 
 	poll(NULL, 0, 500);
 
