@@ -19,6 +19,7 @@
 
 
 #include "co_routine.h"
+#include <string.h>
 
 #include <stdio.h>
 #include <stdlib.h>
