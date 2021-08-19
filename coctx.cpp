@@ -81,15 +81,38 @@ enum {
   kRSP = 13,
 };
 
+//-------------
+// 64 bit arm
+//low | regs[0]: x19 |
+//    | regs[1]: x20 |
+//    | regs[2]: x21 |
+//    | regs[3]: x22 |
+//    | regs[4]: x23 |
+//    | regs[5]: x24 |
+//    | regs[6]: x25 |
+//    | regs[7]: x26 |
+//    | regs[8]: x27 |
+//    | regs[9]: x28 |  
+//    | regs[10]: x29|
+//    | regs[11]: x30|//ret func addr
+//    | regs[12]: sp |
+//hig | regs[13]: x0 |
+
+enum {
+  kARG1 = 13,
+  kRETAddr_ARM64 = 11,
+  kSP_ARM64 = 12,
+};
+
+int coctx_init(coctx_t* ctx) {
+  memset(ctx, 0, sizeof(*ctx));
+  return 0;
+}
 // 64 bit
 extern "C" {
 extern void coctx_swap(coctx_t*, coctx_t*) asm("coctx_swap");
 };
 #if defined(__i386__)
-int coctx_init(coctx_t* ctx) {
-  memset(ctx, 0, sizeof(*ctx));
-  return 0;
-}
 int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
   // make room for coctx_param
   char* sp = ctx->ss_sp + ctx->ss_size - sizeof(coctx_param_t);
@@ -124,9 +147,17 @@ int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
   return 0;
 }
 
-int coctx_init(coctx_t* ctx) {
-  memset(ctx, 0, sizeof(*ctx));
-  return 0;
-}
+#elif defined(__aarch64__)
+int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
 
+  char* sp = ctx->ss_sp + ctx->ss_size - sizeof(void*);
+  sp = (char*)((unsigned long)sp & -16LL);
+  memset(ctx->regs, 0, sizeof(ctx->regs));
+
+  ctx->regs[kSP_ARM64] = sp;
+  ctx->regs[kRETAddr_ARM64] = (char*)pfn;
+
+  ctx->regs[kARG1] = (char*)s;
+  return 0;
+}	
 #endif

@@ -914,6 +914,12 @@ stCoRoutine_t *GetCurrThreadCo( )
 
 
 typedef int (*poll_pfn_t)(struct pollfd fds[], nfds_t nfds, int timeout);
+
+#if defined(__aarch64__)
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+#endif
+
 int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout, poll_pfn_t pollfunc)
 {
     if (timeout == 0)
@@ -1026,6 +1032,10 @@ int co_poll_inner( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeou
 
 	return iRaiseCnt;
 }
+
+#if defined(__aarch64__)
+#pragma GCC pop_options
+#endif
 
 int	co_poll( stCoEpoll_t *ctx,struct pollfd fds[], nfds_t nfds, int timeout_ms )
 {
