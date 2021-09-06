@@ -121,7 +121,7 @@ int coctx_make( coctx_t *ctx,coctx_pfn_t pfn,const void *s,const void *s1 )
 
 	ctx->regs[ kRSP ] = sp - 8;
 
-	ctx->regs[ kRETAddr] = (char*)pfn;
+	ctx->regs[ kRETAddr] = (char*)pfn;	// pfn是切换的函数
 
 	ctx->regs[ kRDI ] = (char*)s;
 	ctx->regs[ kRSI ] = (char*)s1;
