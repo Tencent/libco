@@ -747,6 +747,7 @@ void co_init_curr_thread_env()
 	env->iCallStackSize = 0;
 	struct stCoRoutine_t *self = co_create_env( env, NULL, NULL,NULL );
 	self->cIsMain = 1;
+	free(self->stack_mem->stack_buffer);
 
 	env->pending_co = NULL;
 	env->occupy_co = NULL;
