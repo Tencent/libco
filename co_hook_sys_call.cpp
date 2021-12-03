@@ -939,7 +939,8 @@ int gethostbyname_r(const char* __restrict name,
   HOOK_SYS_FUNC(gethostbyname_r);
 
 #if defined( __APPLE__ ) || defined( __FreeBSD__ )
-	return g_sys_gethostbyname_r_func( name );
+	return g_sys_gethostbyname_r_func(name, __result_buf, __buf, __buflen,
+                                      __result, __h_errnop);
 #else
   if (!co_is_enable_sys_hook()) {
     return g_sys_gethostbyname_r_func(name, __result_buf, __buf, __buflen,
