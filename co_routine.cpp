@@ -545,7 +545,7 @@ void co_free( stCoRoutine_t *co )
         if(co->stack_mem->occupy_co == co)
             co->stack_mem->occupy_co = NULL;
     }
-
+    co->pfn = NULL; //joezzhu fix the memory leak bug at 2022-03-09
     free( co );
 }
 void co_release( stCoRoutine_t *co )
