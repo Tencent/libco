@@ -15,6 +15,7 @@ enable_language(C ASM)
 
 # Add source files
 set(SOURCE_FILES
+	co_comm.cpp
         co_epoll.cpp
         co_hook_sys_call.cpp
         co_routine.cpp
