@@ -40,8 +40,9 @@ ifneq ($v,release)
 BFLAGS= -g
 endif
 
-STATICLIBPATH=$(SRCROOT)/lib
-DYNAMICLIBPATH=$(SRCROOT)/solib
+BUILDDIR = build
+STATICLIBPATH=$(SRCROOT)/$(BUILDDIR)/lib
+DYNAMICLIBPATH=$(SRCROOT)/$(BUILDDIR)/solib
 
 INCLS += -I$(SRCROOT)
 
@@ -52,34 +53,76 @@ else
 LINKS += -L$(STATICLIBPATH)
 endif
 
-CPPSRCS  = $(wildcard *.cpp)
+CPPSRCS  = $(wildcard *.cpp) 
 CSRCS  = $(wildcard *.c)
-CPPOBJS  = $(patsubst %.cpp,%.o,$(CPPSRCS))
-COBJS  = $(patsubst %.c,%.o,$(CSRCS))
+SSRCS  = $(wildcard *.S)
+CPPOBJS  = $(patsubst %.cpp,$(BUILDDIR)/%.o,$(CPPSRCS))
+COBJS  = $(patsubst %.c,$(BUILDDIR)/%.o,$(CSRCS))
+SOBJS  = $(patsubst %.S,$(BUILDDIR)/%.o,$(SSRCS))
 
-SRCS = $(CPPSRCS) $(CSRCS)
-OBJS = $(CPPOBJS) $(COBJS)
+SRCS = $(CPPSRCS) $(CSRCS) $(SSRCS)
+OBJS = $(CPPOBJS) $(COBJS) $(SOBJS)
 
 CPPCOMPI=$(CPP) $(CFLAGS) -Wno-deprecated
 CCCOMPI=$(CC) $(CFLAGS)
 
-BUILDEXE = $(CPP) $(BFLAGS) -o $@ $^ $(LINKS) 
-CLEAN = rm -f *.o 
+BUILDEXE = $(CPP) $(BFLAGS) -o $(BUILDDIR)/$@ $^ $(LINKS) ;
+			
+CLEAN = rm -f *.o ;\
+		rm -rf build
 
+# 在build文件夹下生成.o文件
 CPPCOMPILE = $(CPPCOMPI) $< $(FLAGS) $(INCLS) $(MTOOL_INCL) -o $@
 CCCOMPILE = $(CCCOMPI) $< $(FLAGS) $(INCLS) $(MTOOL_INCL) -o $@
 
+# 链接静态库
 ARSTATICLIB = $(AR) $@.tmp $^ $(AR_FLAGS); \
 			  if [ $$? -ne 0 ]; then exit 1; fi; \
 			  test -d $(STATICLIBPATH) || mkdir -p $(STATICLIBPATH); \
 			  mv -f $@.tmp $(STATICLIBPATH)/$@;
 
+# 链接动态库
 BUILDSHARELIB = $(CPPSHARE) $@.tmp $^ $(BS_FLAGS); \
 				if [ $$? -ne 0 ]; then exit 1; fi; \
 				test -d $(DYNAMICLIBPATH) || mkdir -p $(DYNAMICLIBPATH); \
 				mv -f $@.tmp $(DYNAMICLIBPATH)/$@;
 
-.cpp.o:
+$(BUILDDIR)/%.o : %.cpp
+	mkdir -p build
 	$(CPPCOMPILE)
-.c.o:
+$(BUILDDIR)/%.o : %.c
+	mkdir -p build
 	$(CCCOMPILE)
+$(BUILDDIR)/%.o : %.S
+	mkdir -p build
+	$(CCCOMPILE)
+$(BUILDDIR)/%.o : examples/%.cpp
+	mkdir -p build
+	$(CPPCOMPILE)
+# $(CPPOBJS):%.o:%.cpp
+# 	@echo $@
+
+# $(CPPOBJS):$(CPPSRCS)
+# 	mkdir -p build
+# 	@echo "tttttttttttttt"
+# 	$(CPPCOMPILE)
+# $(CPPOBJS):build/%.o:%.cpp
+# 	mkdir -p build
+# 	@echo "tttttttttttttt"
+# 	$(CPPCOMPILE)
+# $(COBJS):build/%.o:%.c
+# 	mkdir -p build
+# 	$(CCCOMPILE)
+# $(SOBJS):build/%.o:%.S
+# 	mkdir -p build
+# 	$(CCCOMPILE)
+
+# %.o:%.cpp
+# 	mkdir -p build
+# 	$(CPPCOMPILE)
+# .c.o:
+# 	mkdir -p build
+# 	$(CCCOMPILE)
+# .S.o:
+# 	mkdir -p build
+# 	$(CCCOMPILE)
