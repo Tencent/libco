@@ -5,10 +5,8 @@ minikube start --force
 # create dedicated namespace where Jenkins helm chart will be installed
 minikube kubectl create namespace jenkins
 # install helm
-wget https://get.helm.sh/helm-v3.9.2-linux-amd64.tar.gz
-tar -zxvf helm-v3.9.2-linux-amd64.tar.gz
 mv linux-amd64/helm /usr/local/bin/helm
-install jenkins chart
+echo "Installing jenkins chart"
 helm repo add jenkinsci https://charts.jenkins.io
 helm repo update
 helm install jenkins -n jenkins jenkinsci/jenkins
