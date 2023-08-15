@@ -19,7 +19,9 @@ set(SOURCE_FILES
         co_hook_sys_call.cpp
         co_routine.cpp
         coctx.cpp
-        coctx_swap.S)
+        coctx_swap.S
+        co_comm.cpp
+        )
 
 # Add static and shared library target
 add_library(colib_static STATIC ${SOURCE_FILES})
