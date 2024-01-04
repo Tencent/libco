@@ -44,43 +44,34 @@ int main()
 extern int 	co_setspecific( pthread_key_t key, const void *value );
 extern void *	co_getspecific( pthread_key_t key );
 
-#define CO_ROUTINE_SPECIFIC( name,y ) \
-\
-static pthread_once_t _routine_once_##name = PTHREAD_ONCE_INIT; \
-static pthread_key_t _routine_key_##name;\
-static int _routine_init_##name = 0;\
-static void _routine_make_key_##name() \
-{\
- 	(void) pthread_key_create(&_routine_key_##name, NULL); \
-}\
-template <class T>\
-class clsRoutineData_routine_##name\
-{\
-public:\
-	inline T *operator->()\
-	{\
-		if( !_routine_init_##name ) \
-		{\
-			pthread_once( &_routine_once_##name,_routine_make_key_##name );\
-			_routine_init_##name = 1;\
-		}\
-		T* p = (T*)co_getspecific( _routine_key_##name );\
-		if( !p )\
-		{\
-			p = (T*)calloc(1,sizeof( T ));\
-			int ret = co_setspecific( _routine_key_##name,p) ;\
-            if ( ret )\
-            {\
-                if ( p )\
-                {\
-                    free(p);\
-                    p = NULL;\
-                }\
-            }\
-		}\
-		return p;\
-	}\
-};\
-\
-static clsRoutineData_routine_##name<name> y;
+template <class T>
+class clsCoSpecificData {
+ public:
+  T* operator->() {
+    T* p = static_cast<T*>(co_getspecific(key_));
+    if (p != NULL) {
+      return p;
+    }
 
+    p = static_cast<T*>(calloc(1, sizeof(T)));
+    int err = co_setspecific(key_, p);
+    if (err == 0) {
+      return p;
+    }
+    
+    free(p);
+    return NULL;
+  }
+
+  static clsCoSpecificData& GetInstance() {
+    static clsCoSpecificData instance;
+    return instance;
+  }
+
+ private:
+  clsCoSpecificData() { pthread_key_create(&key_, NULL); }
+
+  pthread_key_t key_;
+};
+
+#define CO_ROUTINE_SPECIFIC(Cls, var)  static clsCoSpecificData<Cls>& var = clsCoSpecificData<Cls>::GetInstance();
