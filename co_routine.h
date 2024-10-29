@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <sys/poll.h>
 #include <pthread.h>
+#include <functional>
 
 //1.struct
 
@@ -41,11 +42,12 @@ struct stCoRoutineAttr_t
 
 struct stCoEpoll_t;
 typedef int (*pfn_co_eventloop_t)(void *);
-typedef void *(*pfn_co_routine_t)( void * );
+//typedef void *(*pfn_co_routine_t)( void * );
+typedef std::function<void* (void*)> pfn_co_routine_t;
 
 //2.co_routine
 
-int 	co_create( stCoRoutine_t **co,const stCoRoutineAttr_t *attr,void *(*routine)(void*),void *arg );
+int 	co_create( stCoRoutine_t **co,const stCoRoutineAttr_t *attr, pfn_co_routine_t pfn,void *arg );
 void    co_resume( stCoRoutine_t *co );
 void    co_yield( stCoRoutine_t *co );
 void    co_yield_ct(); //ct = current thread
@@ -59,6 +61,8 @@ void 	co_eventloop( stCoEpoll_t *ctx,pfn_co_eventloop_t pfn,void *arg );
 
 //3.specific
 
+int     co_create_specific( pthread_key_t* key );
+int     co_delete_specific( pthread_key_t key );
 int 	co_setspecific( pthread_key_t key, const void *value );
 void *	co_getspecific( pthread_key_t key );
 

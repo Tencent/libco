@@ -23,7 +23,7 @@
 #include <string.h>
 
 #if !defined( __APPLE__ ) && !defined( __FreeBSD__ )
-
+#include <unistd.h>
 int	co_epoll_wait( int epfd,struct co_epoll_res *events,int maxevents,int timeout )
 {
 	return epoll_wait( epfd,events->events,maxevents,timeout );
@@ -36,7 +36,10 @@ int	co_epoll_create( int size )
 {
 	return epoll_create( size );
 }
-
+int co_epoll_close( int fd )
+{
+    return close(fd);
+}
 struct co_epoll_res *co_epoll_res_alloc( int n )
 {
 	struct co_epoll_res * ptr = 

@@ -1,4 +1,4 @@
-/*
+﻿/*
 * Tencent is pleased to support the open source community by making Libco available.
 
 * Copyright (C) 2014 THL A29 Limited, a Tencent company. All rights reserved.
@@ -39,6 +39,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <limits.h>
+#include <bitset>
 
 extern "C"
 {
@@ -518,6 +519,49 @@ struct stCoRoutine_t *co_create_env( stCoRoutineEnv_t * env, const stCoRoutineAt
 	return lp;
 }
 
+#define DEBUG_ALL_COCTX
+#ifdef DEBUG_ALL_COCTX
+coctx_t** coctx_array = nullptr;
+size_t coctx_array_length = 0;
+size_t coctx_array_capacity = 0;
+void new_coctx_array(size_t new_capacity)
+{
+    coctx_t** new_array = (coctx_t**)malloc(new_capacity * sizeof(coctx_t*));
+    memcpy(new_array, coctx_array, coctx_array_length * sizeof(coctx_t*));
+    free(coctx_array);
+    coctx_array = new_array;
+    coctx_array_capacity = new_capacity;
+}
+
+void add_coctx(coctx_t* coctx)
+{
+    if (coctx_array_length >= coctx_array_capacity)
+    {
+        size_t more_capacity = coctx_array_capacity ? coctx_array_capacity * 2 : 1;
+        new_coctx_array(more_capacity);
+    }
+    coctx_array[coctx_array_length++] = coctx;
+}
+
+void remove_coctx(coctx_t* coctx)
+{
+    for (size_t i = 0; i < coctx_array_length; i++)
+    {
+        if (coctx_array[i] == coctx)
+        {
+            coctx_array_length--;
+            memcpy(&coctx_array[i], &coctx_array[i+1], (coctx_array_length - i) * sizeof(coctx_t*));
+            if (coctx_array_length < coctx_array_capacity/2)
+            {
+                size_t less_capacity = coctx_array_capacity/2;
+                new_coctx_array(less_capacity);
+            }
+            return;
+        }
+    }
+}
+#endif
+
 int co_create( stCoRoutine_t **ppco,const stCoRoutineAttr_t *attr,pfn_co_routine_t pfn,void *arg )
 {
 	if( !co_get_curr_thread_env() ) 
@@ -526,10 +570,16 @@ int co_create( stCoRoutine_t **ppco,const stCoRoutineAttr_t *attr,pfn_co_routine
 	}
 	stCoRoutine_t *co = co_create_env( co_get_curr_thread_env(), attr, pfn,arg );
 	*ppco = co;
+#ifdef DEBUG_ALL_COCTX
+    add_coctx(&co->ctx);
+#endif
 	return 0;
 }
 void co_free( stCoRoutine_t *co )
 {
+#ifdef DEBUG_ALL_COCTX
+    remove_coctx(&co->ctx);
+#endif
     if (!co->cIsShareStack) 
     {    
         free(co->stack_mem->stack_buffer);
@@ -545,6 +595,7 @@ void co_free( stCoRoutine_t *co )
         if(co->stack_mem->occupy_co == co)
             co->stack_mem->occupy_co = NULL;
     }
+    co->pfn = NULL; //joezzhu fix the memory leak bug at 2022-03-09
 
     free( co );
 }
@@ -741,8 +792,8 @@ static __thread stCoRoutineEnv_t* gCoEnvPerThread = NULL;
 
 void co_init_curr_thread_env()
 {
-	gCoEnvPerThread = (stCoRoutineEnv_t*)calloc( 1, sizeof(stCoRoutineEnv_t) );
-	stCoRoutineEnv_t *env = gCoEnvPerThread;
+    stCoRoutineEnv_t *env = (stCoRoutineEnv_t*)calloc( 1, sizeof(stCoRoutineEnv_t) );
+	//stCoRoutineEnv_t *env = gCoEnvPerThread;
 
 	env->iCallStackSize = 0;
 	struct stCoRoutine_t *self = co_create_env( env, NULL, NULL,NULL );
@@ -757,6 +808,8 @@ void co_init_curr_thread_env()
 
 	stCoEpoll_t *ev = AllocEpoll();
 	SetEpoll( env,ev );
+
+    gCoEnvPerThread = env;
 }
 stCoRoutineEnv_t *co_get_curr_thread_env()
 {
@@ -896,8 +949,24 @@ void FreeEpoll( stCoEpoll_t *ctx )
 		free( ctx->pstTimeoutList );
 		FreeTimeout( ctx->pTimeout );
 		co_epoll_res_free( ctx->result );
+        co_epoll_close( ctx->iEpollFd );
 	}
 	free( ctx );
+}
+
+void RecreateEpollFd( stCoRoutineEnv_t *env )
+{
+    if (env->pEpoll)
+    {
+        stCoEpoll_t *ctx = env->pEpoll;
+        co_epoll_close( ctx->iEpollFd );
+        ctx->iEpollFd = co_epoll_create( stCoEpoll_t::_EPOLL_SIZE );
+    }
+    else
+    {
+        stCoEpoll_t *ev = AllocEpoll();
+        SetEpoll( env,ev );
+    }
 }
 
 stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env )
@@ -1054,6 +1123,37 @@ struct stHookPThreadSpec_t
 		size = 1024
 	};
 };
+static std::bitset<1024> specific_mask;
+int co_create_specific( pthread_key_t* key)
+{
+    if (key)
+    {
+        stCoRoutine_t *co = GetCurrThreadCo();
+        if (!co || co->cIsMain) {
+            return pthread_key_create(key, NULL);
+        }
+        for (auto i = 0; i < specific_mask.size(); i++) {
+            if (!specific_mask.test(i)) {
+                specific_mask.set(i);
+                *key = i;
+                return 0;
+            }
+        }
+        *key = -1;
+    }
+    return -1;
+}
+int co_delete_specific( pthread_key_t key )
+{
+    stCoRoutine_t *co = GetCurrThreadCo();
+    if (!co || co->cIsMain) {
+        return pthread_key_delete(key);
+    }
+    assert(0 <= key && key < 1024);
+    assert(specific_mask.test(key));
+    specific_mask.reset(key);
+    return 0;
+}
 void *co_getspecific(pthread_key_t key)
 {
 	stCoRoutine_t *co = GetCurrThreadCo();
@@ -1113,6 +1213,7 @@ struct stCoCond_t
 static void OnSignalProcessEvent( stTimeoutItem_t * ap )
 {
 	stCoRoutine_t *co = (stCoRoutine_t*)ap->pArg;
+    co->cCondTimeout = ap->bTimeout ? 1 : 0;
 	co_resume( co );
 }
 
@@ -1148,8 +1249,10 @@ int co_cond_broadcast( stCoCond_t *si )
 
 int co_cond_timedwait( stCoCond_t *link,int ms )
 {
-	stCoCondItem_t* psi = (stCoCondItem_t*)calloc(1, sizeof(stCoCondItem_t));
-	psi->timeout.pArg = GetCurrThreadCo();
+    stCoRoutine_t* co = GetCurrThreadCo();
+    co->cCondTimeout = 0;
+    stCoCondItem_t* psi = (stCoCondItem_t*)calloc(1, sizeof(stCoCondItem_t));
+	psi->timeout.pArg = co; //GetCurrThreadCo();
 	psi->timeout.pfnProcess = OnSignalProcessEvent;
 
 	if( ms > 0 )
@@ -1172,7 +1275,7 @@ int co_cond_timedwait( stCoCond_t *link,int ms )
 	RemoveFromLink<stCoCondItem_t,stCoCond_t>( psi );
 	free(psi);
 
-	return 0;
+	return co->cCondTimeout; // 0;
 }
 stCoCond_t *co_cond_alloc()
 {

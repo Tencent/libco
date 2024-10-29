@@ -58,6 +58,7 @@ struct stCoRoutine_t
 	char cIsMain;
 	char cEnableSysHook;
 	char cIsShareStack;
+    char cCondTimeout;
 
 	void *pvEnv;
 
@@ -103,6 +104,7 @@ void 		FreeEpoll( stCoEpoll_t *ctx );
 
 stCoRoutine_t *		GetCurrThreadCo();
 void 				SetEpoll( stCoRoutineEnv_t *env,stCoEpoll_t *ev );
+void 				RecreateEpollFd( stCoRoutineEnv_t *env );
 
 typedef void (*pfnCoRoutineFunc_t)();
 

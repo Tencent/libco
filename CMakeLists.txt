@@ -1,55 +1,20 @@
-cmake_minimum_required(VERSION 2.8)
-project(libco)
+cmake_minimum_required(VERSION 2.8.12)
 
-# This for mac osx only
-set(CMAKE_MACOSX_RPATH 0)
+message(STATUS "CURRENT_DIR: ${CMAKE_CURRENT_LIST_DIR}")
 
-# Set lib version
-set(LIBCO_VERSION   0.5)
+#set (CMAKE_CXX_FLAGS "-std=c++11 -pthread")
+#set (CMAKE_CXX_STANDARD 11)
 
-# Set cflags
-set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -g -fno-strict-aliasing -O2 -Wall -export-dynamic -Wall -pipe  -D_GNU_SOURCE -D_REENTRANT -fPIC -Wno-deprecated -m64)
+enable_language(C CXX ASM)
 
-# Use c and asm
-enable_language(C ASM)
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_CXX_STANDARD: ${CMAKE_CXX_STANDARD}")
 
-# Add source files
-set(SOURCE_FILES
-        co_epoll.cpp
-        co_hook_sys_call.cpp
-        co_routine.cpp
-        coctx.cpp
-        coctx_swap.S)
+# 查找当前目录下的所有源文件
+# 并将名称保存到 DIR_LIB_SRCS 变量
+aux_source_directory(. DIR_LIB_SRCS)
+set(DIR_LIB_SRCS ${DIR_LIB_SRCS} coctx_swap.S)
+# 生成
+#add_executable(DSAdmin ${DIR_LIB_SRCS})
+add_library (libco STATIC ${DIR_LIB_SRCS})
 
-# Add static and shared library target
-add_library(colib_static STATIC ${SOURCE_FILES})
-add_library(colib_shared SHARED ${SOURCE_FILES})
-
-# Set library output name
-set_target_properties(colib_static PROPERTIES OUTPUT_NAME colib)
-set_target_properties(colib_shared PROPERTIES OUTPUT_NAME colib)
-
-set_target_properties(colib_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-set_target_properties(colib_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-
-# Set shared library version, will generate libcolib.${LIBCO_VERSION}.so and a symbol link named libcolib.so
-# For mac osx, the extension name will be .dylib
-set_target_properties(colib_shared PROPERTIES VERSION ${LIBCO_VERSION} SOVERSION ${LIBCO_VERSION})
-
-
-
-# Macro for add example target
-macro(add_example_target EXAMPLE_TARGET)
-    add_executable("example_${EXAMPLE_TARGET}" "example_${EXAMPLE_TARGET}.cpp")
-    target_link_libraries("example_${EXAMPLE_TARGET}" colib_static pthread dl)
-endmacro(add_example_target)
-
-add_example_target(closure)
-add_example_target(cond)
-add_example_target(copystack)
-add_example_target(echocli)
-add_example_target(echosvr)
-add_example_target(poll)
-add_example_target(setenv)
-add_example_target(specific)
-add_example_target(thread)
