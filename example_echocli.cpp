@@ -98,12 +98,11 @@ void AddFailCnt()
 	}
 }
 
-static void *readwrite_routine( void *arg )
+static void *readwrite_routine( stEndPoint endpoint )
 {
 
 	co_enable_hook_sys();
 
-	stEndPoint *endpoint = (stEndPoint *)arg;
 	char str[8]="sarlmol";
 	char buf[ 1024 * 16 ];
 	int fd = -1;
@@ -114,7 +113,7 @@ static void *readwrite_routine( void *arg )
 		{
 			fd = socket(PF_INET, SOCK_STREAM, 0);
 			struct sockaddr_in addr;
-			SetAddr(endpoint->ip, endpoint->port, addr);
+			SetAddr(endpoint.ip, endpoint.port, addr);
 			ret = connect(fd,(struct sockaddr*)&addr,sizeof(addr));
 						
 			if ( errno == EALREADY || errno == EINPROGRESS )
@@ -206,7 +205,7 @@ int main(int argc,char *argv[])
 		for(int i=0;i<cnt;i++)
 		{
 			stCoRoutine_t *co = 0;
-			co_create( &co,NULL,readwrite_routine, &endpoint);
+			co_create( &co,NULL,readwrite_routine, endpoint);
 			co_resume( co );
 		}
 		co_eventloop( co_get_epoll_ct(),0,0 );

@@ -49,7 +49,6 @@ struct task_t
 };
 
 static stack<task_t*> g_readwrite;
-static int g_listen_fd = -1;
 static int SetNonBlock(int iSock)
 {
     int iFlags;
@@ -61,12 +60,11 @@ static int SetNonBlock(int iSock)
     return ret;
 }
 
-static void *readwrite_routine( void *arg )
+static void *readwrite_routine( task_t *co )
 {
 
 	co_enable_hook_sys();
 
-	task_t *co = (task_t*)arg;
 	char buf[ 1024 * 16 ];
 	for(;;)
 	{
@@ -104,7 +102,7 @@ static void *readwrite_routine( void *arg )
 	return 0;
 }
 int co_accept(int fd, struct sockaddr *addr, socklen_t *len );
-static void *accept_routine( void * )
+static void *accept_routine(int listen_fd )
 {
 	co_enable_hook_sys();
 	printf("accept_routine\n");
@@ -126,11 +124,11 @@ static void *accept_routine( void * )
 		memset( &addr,0,sizeof(addr) );
 		socklen_t len = sizeof(addr);
 
-		int fd = co_accept(g_listen_fd, (struct sockaddr *)&addr, &len);
+		int fd = co_accept(listen_fd, (struct sockaddr *)&addr, &len);
 		if( fd < 0 )
 		{
 			struct pollfd pf = { 0 };
-			pf.fd = g_listen_fd;
+			pf.fd = listen_fd;
 			pf.events = (POLLIN|POLLERR|POLLHUP);
 			co_poll( co_get_epoll_ct(),&pf,1,1000 );
 			continue;
@@ -210,15 +208,15 @@ int main(int argc,char *argv[])
 	int proccnt = atoi( argv[4] );
 	bool deamonize = argc >= 6 && strcmp(argv[5], "-d") == 0;
 
-	g_listen_fd = CreateTcpSocket( port,ip,true );
-	listen( g_listen_fd,1024 );
-	if(g_listen_fd==-1){
+	int listen_fd = CreateTcpSocket( port,ip,true );
+	listen( listen_fd,1024 );
+	if(listen_fd==-1){
 		printf("Port %d is in use\n", port);
 		return -1;
 	}
-	printf("listen %d %s:%d\n",g_listen_fd,ip,port);
+	printf("listen %d %s:%d\n",listen_fd,ip,port);
 
-	SetNonBlock( g_listen_fd );
+	SetNonBlock( listen_fd );
 
 	for(int k=0;k<proccnt;k++)
 	{
@@ -242,7 +240,7 @@ int main(int argc,char *argv[])
 
 		}
 		stCoRoutine_t *accept_co = NULL;
-		co_create( &accept_co,NULL,accept_routine,0 );
+		co_create( &accept_co,NULL,accept_routine, listen_fd );
 		co_resume( accept_co );
 
 		co_eventloop( co_get_epoll_ct(),0,0 );

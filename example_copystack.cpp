@@ -26,14 +26,13 @@
 #include "co_routine.h"
 #include "co_routine_inner.h"
 
-void* RoutineFunc(void* args)
+void* RoutineFunc(int routineid)
 {
 	co_enable_hook_sys();
-	int* routineid = (int*)args;
 	while (true)
 	{
 		char sBuff[128];
-		sprintf(sBuff, "from routineid %d stack addr %p\n", *routineid, sBuff);
+		sprintf(sBuff, "from routineid %d stack addr %p\n", routineid, sBuff);
 
 		printf("%s", sBuff);
 		poll(NULL, 0, 1000); //sleep 1s
@@ -53,7 +52,7 @@ int main()
 	for (int i = 0; i < 2; i++)
 	{
 		routineid[i] = i;
-		co_create(&co[i], &attr, RoutineFunc, routineid + i);
+		co_create(&co[i], &attr, RoutineFunc, routineid[i]);
 		co_resume(co[i]);
 	}
 	co_eventloop(co_get_epoll_ct(), NULL, NULL);

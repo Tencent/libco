@@ -35,10 +35,9 @@ struct stRoutineSpecificData_t
 
 CO_ROUTINE_SPECIFIC(stRoutineSpecificData_t, __routine);
 
-void* RoutineFunc(void* args)
+void* RoutineFunc(stRoutineArgs_t* routine_args)
 {
 	co_enable_hook_sys();
-	stRoutineArgs_t* routine_args = (stRoutineArgs_t*)args;
 	__routine->idx = routine_args->routine_id;
 	while (true)
 	{
@@ -53,7 +52,7 @@ int main()
 	for (int i = 0; i < 10; i++)
 	{
 		args[i].routine_id = i;
-		co_create(&args[i].co, NULL, RoutineFunc, (void*)&args[i]);
+		co_create(&args[i].co, NULL, RoutineFunc, &args[i]);
 		co_resume(args[i].co);
 	}
 	co_eventloop(co_get_epoll_ct(), NULL, NULL);

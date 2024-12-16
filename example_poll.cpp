@@ -106,11 +106,10 @@ static int CreateTcpSocket(const unsigned short shPort  = 0 ,const char *pszIP  
 	return fd;
 }
 
-static void *poll_routine( void *arg )
+static void *poll_routine( vector<task_t> v )
 {
 	co_enable_hook_sys();
 
-	vector<task_t> &v = *(vector<task_t>*)arg;
 	for(size_t i=0;i<v.size();i++)
 	{
 		int fd = CreateTcpSocket();
@@ -189,16 +188,13 @@ int main(int argc,char *argv[])
 
 //------------------------------------------------------------------------------------
 	printf("--------------------- main -------------------\n");
-	vector<task_t> v2 = v;
-	poll_routine( &v2 );
+	poll_routine( v );
 	printf("--------------------- routine -------------------\n");
 
 	for(int i=0;i<10;i++)
 	{
 		stCoRoutine_t *co = 0;
-		vector<task_t> *v2 = new vector<task_t>();
-		*v2 = v;
-		co_create( &co,NULL,poll_routine,v2 );
+		co_create( &co,NULL,poll_routine, v );
 		printf("routine i %d\n",i);
 		co_resume( co );
 	}

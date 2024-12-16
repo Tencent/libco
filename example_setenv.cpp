@@ -62,11 +62,9 @@ void SetAndGetEnv(int iRoutineID)
 	printf("routineid %d get env CGINAME %s\n", iRoutineID, env);
 }
 
-void* RoutineFunc(void* args)
+void* RoutineFunc(stRoutineArgs_t* g)
 {
 	co_enable_hook_sys();
-
-	stRoutineArgs_t* g = (stRoutineArgs_t*)args;
 
 	SetAndGetEnv(g->iRoutineID);
 	return NULL;

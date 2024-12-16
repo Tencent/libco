@@ -31,10 +31,9 @@ struct stEnv_t
 	stCoCond_t* cond;
 	queue<stTask_t*> task_queue;
 };
-void* Producer(void* args)
+void* Producer(stEnv_t* env)
 {
 	co_enable_hook_sys();
-	stEnv_t* env=  (stEnv_t*)args;
 	int id = 0;
 	while (true)
 	{
@@ -47,10 +46,9 @@ void* Producer(void* args)
 	}
 	return NULL;
 }
-void* Consumer(void* args)
+void* Consumer(stEnv_t* env)
 {
 	co_enable_hook_sys();
-	stEnv_t* env = (stEnv_t*)args;
 	while (true)
 	{
 		if (env->task_queue.empty())
