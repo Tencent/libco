@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 
-
 COMM_MAKE = 1
 COMM_ECHO = 1
 version=0.5
@@ -25,7 +24,7 @@ include co.mk
 
 ########## options ##########
 CFLAGS += -g -fno-strict-aliasing -O2 -Wall -export-dynamic \
-	-Wall -pipe  -D_GNU_SOURCE -D_REENTRANT -fPIC -Wno-deprecated -m64
+	-Wall -pipe  -D_GNU_SOURCE -D_REENTRANT -fPIC -Wno-deprecated -m64 -MMD
 
 UNAME := $(shell uname -s)
 
@@ -40,45 +39,46 @@ COLIB_OBJS=co_epoll.o co_routine.o co_hook_sys_call.o coctx_swap.o coctx.o co_co
 
 PROGS = colib example_poll example_echosvr example_echocli example_thread  example_cond example_specific example_copystack example_closure example_setenv
 
-all:$(PROGS)
+all: $(PROGS)
 
-colib:libcolib.a libcolib.so
+colib: libcolib.a libcolib.so
 
 libcolib.a: $(COLIB_OBJS)
 	$(ARSTATICLIB) 
 libcolib.so: $(COLIB_OBJS)
 	$(BUILDSHARELIB) 
 
-example_echosvr:example_echosvr.o
+example_echosvr: example_echosvr.o  libco/lib/libcolib.a
 	$(BUILDEXE) 
-example_echocli:example_echocli.o
+example_echocli: example_echocli.o  libco/lib/libcolib.a
 	$(BUILDEXE) 
-example_thread:example_thread.o
+example_thread: example_thread.o  libco/lib/libcolib.a
 	$(BUILDEXE) 
-example_poll:example_poll.o
+example_poll: example_poll.o  libco/lib/libcolib.a
 	$(BUILDEXE) 
-example_exit:example_exit.o
+example_exit: example_exit.o
 	$(BUILDEXE) 
-example_cond:example_cond.o
+example_cond: example_cond.o  libco/lib/libcolib.a
 	$(BUILDEXE)
-example_specific:example_specific.o
+example_specific: example_specific.o  libco/lib/libcolib.a
 	$(BUILDEXE)
-example_copystack:example_copystack.o
+example_copystack: example_copystack.o  libco/lib/libcolib.a
 	$(BUILDEXE)
-example_setenv:example_setenv.o
+example_setenv: example_setenv.o  libco/lib/libcolib.a
 	$(BUILDEXE)
-example_closure:example_closure.o
+example_closure: example_closure.o  libco/lib/libcolib.a
 	$(BUILDEXE)
 
 dist: clean libco-$(version).src.tar.gz
 
-libco-$(version).src.tar.gz:
+libco-$(version).src.tar.gz: 
 	@find . -type f | grep -v CVS | grep -v .svn | sed s:^./:libco-$(version)/: > MANIFEST
 	@(cd ..; ln -s libco_pub libco-$(version))
 	(cd ..; tar cvf - `cat libco_pub/MANIFEST` | gzip > libco_pub/libco-$(version).src.tar.gz)
 	@(cd ..; rm libco-$(version))
 
-clean:
+clean: 
 	$(CLEAN) *.o $(PROGS)
 	rm -fr MANIFEST lib solib libco-$(version).src.tar.gz libco-$(version)
 
+-include $(wildcard *.d)
