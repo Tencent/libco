@@ -1,0 +1,42 @@
+cc_library(
+    name = "libco",
+    srcs = [
+        "co_epoll.cpp",
+        "co_hook_sys_call.cpp",
+        "co_routine.cpp",
+        "coctx.cpp",
+        "coctx_swap.S",
+    ],
+    hdrs = [
+        "co_closure.h",
+        "co_comm.h",
+        "co_epoll.h",
+        "co_routine.h",
+        "co_routine_inner.h",
+        "co_routine_specific.h",
+        "coctx.h",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+TEST_FILES = [
+    "example_closure.cpp",
+    "example_thread.cpp",
+    "example_specific.cpp",
+    "example_setenv.cpp",
+    "example_poll.cpp",
+    "example_echosvr.cpp",
+    "example_echocli.cpp",
+    "example_copystack.cpp",
+    "example_cond.cpp",
+]
+
+[
+    cc_test(
+        name = TEST_FILE[:-3],
+        srcs = [TEST_FILE],
+        deps = [":libco"],
+        visibility = ["//visibility:private"],
+    )
+    for TEST_FILE in TEST_FILES
+]

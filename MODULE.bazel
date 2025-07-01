@@ -1,0 +1,5 @@
+module(
+    name = "libco",
+    version = "1.0.0",
+    compatibility_level = 0,
+)
