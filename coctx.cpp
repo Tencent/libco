@@ -129,4 +129,45 @@ int coctx_init(coctx_t* ctx) {
   return 0;
 }
 
+#elif defined(__aarch64__) || defined(__arm64__)
+
+enum {
+  kX19 = 0,
+  kX20 = 1,
+  kX21 = 2,
+  kX22 = 3,
+  kX23 = 4,
+  kX24 = 5,
+  kX25 = 6,
+  kX26 = 7,
+  kX27 = 8,
+  kX28 = 9,
+  kFP = 10,   // x29 frame pointer
+  kLR = 11,   // x30 link register
+  kSP = 12,   // stack pointer
+};
+
+int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
+  char* sp = ctx->ss_sp + ctx->ss_size - sizeof(void*);
+  sp = (char*)((unsigned long)sp & ~15ULL);  // 16-byte alignment
+  
+  memset(ctx->regs, 0, sizeof(ctx->regs));
+  
+  ctx->regs[kSP] = sp;
+  ctx->regs[kLR] = (char*)pfn;  // Link register holds return address
+  
+  // Pass arguments in x0 and x1 according to ARM64 calling convention
+  // Note: These will be passed when the coroutine starts
+  // Store them in callee-saved registers temporarily
+  ctx->regs[kX19] = (char*)s;   // First argument
+  ctx->regs[kX20] = (char*)s1;  // Second argument
+  
+  return 0;
+}
+
+int coctx_init(coctx_t* ctx) {
+  memset(ctx, 0, sizeof(*ctx));
+  return 0;
+}
+
 #endif

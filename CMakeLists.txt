@@ -18,6 +18,7 @@ set(SOURCE_FILES
         co_epoll.cpp
         co_hook_sys_call.cpp
         co_routine.cpp
+        co_comm.cpp
         coctx.cpp
         coctx_swap.S)
 
