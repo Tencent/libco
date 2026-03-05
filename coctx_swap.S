@@ -80,4 +80,42 @@ coctx_swap:
 
     movq 64(%rsi), %rsi
 	ret
+#elif defined(__riscv) && __riscv_xlen == 64
+    /* Save curr context registers to regs[] pointed by a0 */
+    /* regs layout: [0]=ra [1]=sp [2]=s0 [3]=s1 ... [13]=s11 [14]=a0 [15]=a1 */
+    sd  ra,    0(a0)
+    sd  sp,    8(a0)
+    sd  s0,   16(a0)
+    sd  s1,   24(a0)
+    sd  s2,   32(a0)
+    sd  s3,   40(a0)
+    sd  s4,   48(a0)
+    sd  s5,   56(a0)
+    sd  s6,   64(a0)
+    sd  s7,   72(a0)
+    sd  s8,   80(a0)
+    sd  s9,   88(a0)
+    sd  s10,  96(a0)
+    sd  s11, 104(a0)
+    sd  a0,  112(a0)
+    sd  a1,  120(a0)
+
+    /* Restore pending context registers from regs[] pointed by a1 */
+    ld  ra,    0(a1)
+    ld  sp,    8(a1)
+    ld  s0,   16(a1)
+    ld  s1,   24(a1)
+    ld  s2,   32(a1)
+    ld  s3,   40(a1)
+    ld  s4,   48(a1)
+    ld  s5,   56(a1)
+    ld  s6,   64(a1)
+    ld  s7,   72(a1)
+    ld  s8,   80(a1)
+    ld  s9,   88(a1)
+    ld  s10,  96(a1)
+    ld  s11, 104(a1)
+    ld  a0,  112(a1)
+    ld  a1,  120(a1)
+    ret
 #endif

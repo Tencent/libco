@@ -29,6 +29,8 @@ struct coctx_t
 {
 #if defined(__i386__)
 	void *regs[ 8 ];
+#elif defined(__riscv) && __riscv_xlen == 64
+	void *regs[ 16 ];
 #else
 	void *regs[ 14 ];
 #endif
