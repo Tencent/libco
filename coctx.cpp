@@ -41,6 +41,13 @@ available.
 #define RCX 11
 #define R8 12
 #define R9 13
+// -----------
+// RISC-V 64-bit
+#define RISCV_RA  0
+#define RISCV_SP  1
+#define RISCV_S0  2
+#define RISCV_A0 14
+#define RISCV_A1 15
 
 //----- --------
 // 32 bit
@@ -121,6 +128,26 @@ int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
 
   ctx->regs[kRDI] = (char*)s;
   ctx->regs[kRSI] = (char*)s1;
+  return 0;
+}
+
+int coctx_init(coctx_t* ctx) {
+  memset(ctx, 0, sizeof(*ctx));
+  return 0;
+}
+
+#elif defined(__riscv) && __riscv_xlen == 64
+int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
+  char* sp = ctx->ss_sp + ctx->ss_size - sizeof(void*);
+  sp = (char*)((unsigned long)sp & -16LL);
+
+  memset(ctx->regs, 0, sizeof(ctx->regs));
+
+  ctx->regs[RISCV_SP]  = sp;
+  ctx->regs[RISCV_RA]  = (char*)pfn;
+  ctx->regs[RISCV_S0]  = sp;
+  ctx->regs[RISCV_A0]  = (char*)s;
+  ctx->regs[RISCV_A1]  = (char*)s1;
   return 0;
 }
 
