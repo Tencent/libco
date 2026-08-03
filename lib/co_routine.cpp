@@ -43,6 +43,9 @@
 extern "C"
 {
 	extern void coctx_swap( coctx_t *,coctx_t* ) asm("coctx_swap");
+#ifdef __aarch64__
+	extern void get_sp(void*) asm("get_sp");
+#endif
 };
 using namespace std;
 stCoRoutine_t *GetCurrCo( stCoRoutineEnv_t *env );
@@ -278,6 +281,13 @@ stStackMem_t* co_alloc_stackmem(unsigned int stack_size)
 
 stShareStack_t* co_alloc_sharestack(int count, int stack_size)
 {
+	int default_stack_size = 128 * 1024;
+	if (stack_size <= 0) {
+		stack_size = default_stack_size;
+	}
+	if (count <= 0) {
+		count = 1;
+	}
 	stShareStack_t* share_stack = (stShareStack_t*)malloc(sizeof(stShareStack_t));
 	share_stack->alloc_idx = 0;
 	share_stack->stack_size = stack_size;
@@ -291,6 +301,25 @@ stShareStack_t* co_alloc_sharestack(int count, int stack_size)
 	}
 	share_stack->stack_array = stack_array;
 	return share_stack;
+}
+
+void co_free_sharestack(stShareStack_t* share_stack) {
+	if (!share_stack) {
+		return;
+	}
+	for (int i = 0; i < share_stack->count; i++)
+	{
+		if (share_stack->stack_array[i] == nullptr) {
+			continue;
+		}
+		free(share_stack->stack_array[i]->stack_buffer);
+		share_stack->stack_array[i]->stack_buffer = nullptr;
+		free(share_stack->stack_array[i]);
+		share_stack->stack_array[i] = nullptr;
+	}
+	free(share_stack->stack_array);
+	share_stack->stack_array = nullptr;
+	free(share_stack);
 }
 
 static stStackMem_t* co_get_stackmem(stShareStack_t* share_stack)
@@ -373,7 +402,9 @@ stTimeout_t *AllocTimeout( int iSize )
 void FreeTimeout( stTimeout_t *apTimeout )
 {
 	free( apTimeout->pItems );
+	apTimeout->pItems = nullptr;
 	free ( apTimeout );
+	apTimeout = nullptr;
 }
 int AddTimeout( stTimeout_t *apTimeout,stTimeoutItem_t *apItem ,unsigned long long allNow )
 {
@@ -533,15 +564,18 @@ void co_free( stCoRoutine_t *co )
     if (!co->cIsShareStack) 
     {    
         free(co->stack_mem->stack_buffer);
+		co->stack_mem->stack_buffer = nullptr;
         free(co->stack_mem);
+		co->stack_mem = nullptr;
     }   
     //walkerdu fix at 2018-01-20
     //存在内存泄漏
     else 
     {
-        if(co->save_buffer)
+        if (co->save_buffer) {
             free(co->save_buffer);
-
+            co->save_buffer = nullptr;
+        }
         if(co->stack_mem->occupy_co == co)
             co->stack_mem->occupy_co = NULL;
     }
@@ -636,9 +670,16 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 {
  	stCoRoutineEnv_t* env = co_get_curr_thread_env();
 
-	//get curr stack sp
+	// get a stack pointer indicating the place from
+	// which to save the data brfore context swipping.
+#ifdef __aarch64__
+	void* c{nullptr};
+	get_sp(&c);
+	curr->stack_sp = (char*)c;
+#else
 	char c;
 	curr->stack_sp= &c;
+#endif
 
 	if (!pending_co->cIsShareStack)
 	{
@@ -738,6 +779,22 @@ static short EpollEvent2Poll( uint32_t events )
 }
 
 static __thread stCoRoutineEnv_t* gCoEnvPerThread = NULL;
+
+void co_destruct_curr_thread_env() {
+	if(!co_get_curr_thread_env()) {
+		return;
+	}
+
+	struct stCoRoutine_t *self = gCoEnvPerThread->pCallStack[0];
+	if (self == nullptr) {
+		return;
+	}
+
+	co_free(self);
+	FreeEpoll(gCoEnvPerThread->pEpoll);
+	free(gCoEnvPerThread);
+	gCoEnvPerThread = nullptr;
+}
 
 void co_init_curr_thread_env()
 {
@@ -893,7 +950,9 @@ void FreeEpoll( stCoEpoll_t *ctx )
 	if( ctx )
 	{
 		free( ctx->pstActiveList );
+		ctx->pstActiveList = nullptr;
 		free( ctx->pstTimeoutList );
+		ctx->pstTimeoutList = nullptr;
 		FreeTimeout( ctx->pTimeout );
 		co_epoll_res_free( ctx->result );
 	}
