@@ -10,6 +10,7 @@ set(SOURCE_FILES
         co_routine.cpp
         coctx.cpp
         co_comm.cpp
+        co_memcpy.c
         coctx_swap.S)
 
 # Add static and shared library target
