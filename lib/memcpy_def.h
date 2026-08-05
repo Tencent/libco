@@ -83,7 +83,10 @@
 #define memcpy_blk_save(dst, src)    memcpy_blk_neon(dst, src, "ldp",  "stnp")
 #define memcpy_blk_swap(dst, src)    memcpy_blk_neon(dst, src, "ldnp", "stp")
 
-#define memcpy_384B_save(dst, src, len)  memcpy_384B_neon(dst, src, len, "ldp",  "stnp")
-#define memcpy_384B_swap(dst, src, len)  memcpy_384B_neon(dst, src, len, "ldnp", "stp")
+#define memcpy_384B_save(dst, src, len, rem)  memcpy_384B_neon(dst, src, len, rem, "ldp",  "stnp")
+#define memcpy_384B_swap(dst, src, len, rem)  memcpy_384B_neon(dst, src, len, rem, "ldnp", "stp")
+
+#define memcpy_512B_save(dst, src, len, rem)  memcpy_512B_neon(dst, src, len, rem, "ldp",  "stnp")
+#define memcpy_512B_swap(dst, src, len, rem)  memcpy_512B_neon(dst, src, len, rem, "ldnp", "stp")
 
 #endif /* MEMCPY_DEF_H */

@@ -5,6 +5,7 @@
 
 #define SIZE_128B 128
 #define SIZE_1KB 1024
+#define SIZE_4KB 4096
 
 static void *co_memcpy_save_aarch64(void *restrict dst, const void *restrict src, unsigned long len)
 {
@@ -24,15 +25,22 @@ static void *co_memcpy_save_aarch64(void *restrict dst, const void *restrict src
     }
 
     int len_count = len / BLOCK_SIZE;
+    int rem = len % BLOCK_SIZE;
     if (len <= SIZE_1KB) {
         memcpy_blk(dst, src, len_count, memcpy_blk_save);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
+    } else if (len <= SIZE_4KB) {
+        memcpy_384B_save(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
     } else {
-        memcpy_384B_save(dst, src, len_count);
-    }
-
-    len %= BLOCK_SIZE;
-    if (len) {
-        memcpy_rem(dst, src, len);
+        memcpy_512B_save(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
     }
 #endif
     return dst_ret;
@@ -56,15 +64,22 @@ static void *co_memcpy_swap_aarch64(void *restrict dst, const void *restrict src
     }
 
     int len_count = len / BLOCK_SIZE;
+    int rem = len % BLOCK_SIZE;
     if (len <= SIZE_1KB) {
         memcpy_blk(dst, src, len_count, memcpy_blk_swap);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
+    } else if (len <= SIZE_4KB) {
+        memcpy_384B_swap(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
     } else {
-        memcpy_384B_swap(dst, src, len_count);
-    }
-
-    len %= BLOCK_SIZE;
-    if (len) {
-        memcpy_rem(dst, src, len);
+        memcpy_512B_swap(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
     }
 #endif
     return dst_ret;
