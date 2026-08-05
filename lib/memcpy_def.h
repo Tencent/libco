@@ -92,4 +92,7 @@
 #define memcpy_1024B_save(dst, src, len, rem)  memcpy_1024B_neon(dst, src, len, rem, "ldp",  "stnp")
 #define memcpy_1024B_swap(dst, src, len, rem)  memcpy_1024B_neon(dst, src, len, rem, "ldnp", "stp")
 
+#define memcpy_1536B_save(dst, src, len, rem)  memcpy_1536B_neon(dst, src, len, rem, "ldp",  "stnp")
+#define memcpy_1536B_swap(dst, src, len, rem)  memcpy_1536B_neon(dst, src, len, rem, "ldnp", "stp")
+
 #endif /* MEMCPY_DEF_H */

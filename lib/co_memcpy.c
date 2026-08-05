@@ -7,6 +7,7 @@
 #define SIZE_1KB 1024
 #define SIZE_2KB 2048
 #define SIZE_8KB 8192
+#define SIZE_12KB 12288
 
 static void *co_memcpy_save_aarch64(void *restrict dst, const void *restrict src, unsigned long len)
 {
@@ -42,8 +43,13 @@ static void *co_memcpy_save_aarch64(void *restrict dst, const void *restrict src
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
-    } else {
+    } else if (len <= SIZE_12KB) {
         memcpy_1024B_save(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
+    } else {
+        memcpy_1536B_save(dst, src, len_count, rem);
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
@@ -86,8 +92,13 @@ static void *co_memcpy_swap_aarch64(void *restrict dst, const void *restrict src
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
-    } else {
+    } else if (len <= SIZE_12KB) {
         memcpy_1024B_swap(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
+    } else {
+        memcpy_1536B_swap(dst, src, len_count, rem);
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
