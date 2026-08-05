@@ -5,7 +5,8 @@
 
 #define SIZE_128B 128
 #define SIZE_1KB 1024
-#define SIZE_4KB 4096
+#define SIZE_2KB 2048
+#define SIZE_8KB 8192
 
 static void *co_memcpy_save_aarch64(void *restrict dst, const void *restrict src, unsigned long len)
 {
@@ -31,13 +32,18 @@ static void *co_memcpy_save_aarch64(void *restrict dst, const void *restrict src
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
-    } else if (len <= SIZE_4KB) {
+    } else if (len <= SIZE_2KB) {
         memcpy_384B_save(dst, src, len_count, rem);
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
-    } else {
+    } else if (len <= SIZE_8KB) {
         memcpy_512B_save(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
+    } else {
+        memcpy_1024B_save(dst, src, len_count, rem);
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
@@ -70,13 +76,18 @@ static void *co_memcpy_swap_aarch64(void *restrict dst, const void *restrict src
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
-    } else if (len <= SIZE_4KB) {
+    } else if (len <= SIZE_2KB) {
         memcpy_384B_swap(dst, src, len_count, rem);
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
-    } else {
+    } else if (len <= SIZE_8KB) {
         memcpy_512B_swap(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
+    } else {
+        memcpy_1024B_swap(dst, src, len_count, rem);
         if (rem) {
             memcpy_rem(dst, src, rem);
         }
