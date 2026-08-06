@@ -23,6 +23,10 @@
 #include <sys/poll.h>
 #include <pthread.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //1.struct
 
 struct stCoRoutine_t;
@@ -51,6 +55,7 @@ void    co_yield( stCoRoutine_t *co );
 void    co_yield_ct(); //ct = current thread
 void    co_release( stCoRoutine_t *co );
 void    co_reset(stCoRoutine_t * co); 
+void    co_destruct_curr_thread_env();
 
 stCoRoutine_t *co_self();
 
@@ -84,10 +89,16 @@ int co_cond_timedwait( stCoCond_t *,int timeout_ms );
 
 //7.share stack
 stShareStack_t* co_alloc_sharestack(int iCount, int iStackSize);
+void co_free_sharestack(stShareStack_t* share_stack);
 
 //8.init envlist for hook get/set env
 void co_set_env_list( const char *name[],size_t cnt);
 
 void co_log_err( const char *fmt,... );
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
