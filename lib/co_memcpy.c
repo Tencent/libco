@@ -6,6 +6,7 @@
 #define SIZE_128B 128
 #define SIZE_1KB 1024
 #define SIZE_2KB 2048
+#define SIZE_4KB 4096
 #define SIZE_8KB 8192
 #define SIZE_12KB 12288
 
@@ -34,6 +35,11 @@ static void *co_memcpy_save_aarch64(void *restrict dst, const void *restrict src
             memcpy_rem(dst, src, rem);
         }
     } else if (len <= SIZE_2KB) {
+        memcpy_256B_save(dst, src, len_count, rem);
+        if (rem) {
+            memcpy_rem(dst, src, rem);
+        }
+    } else if (len <= SIZE_4KB) {
         memcpy_384B_save(dst, src, len_count, rem);
         if (rem) {
             memcpy_rem(dst, src, rem);

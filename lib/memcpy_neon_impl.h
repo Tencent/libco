@@ -94,6 +94,65 @@ extern "C"
               "q24", "q25", "q26", "q27", "q28", "q29", "q30", "q31");         \
     } while (0)
 
+#define memcpy_256B_neon(dst, src, len, rem, ld_ins, st_ins)                   \
+    do                                                                         \
+    {                                                                          \
+        asm volatile(                                                          \
+            "0:\n"                                                             \
+            "cmp    %2, #2\n"                                                  \
+            "b.lt   1f\n"                                                      \
+            ld_ins "   q0, q1, [%1]\n"                                         \
+            ld_ins "   q2, q3, [%1, #32]\n"                                    \
+            ld_ins "   q4, q5, [%1, #64]\n"                                    \
+            ld_ins "   q6, q7, [%1, #96]\n"                                    \
+            st_ins "    q0, q1, [%0]\n"                                        \
+            st_ins "    q2, q3, [%0, #32]\n"                                   \
+            st_ins "    q4, q5, [%0, #64]\n"                                   \
+            st_ins "    q6, q7, [%0, #96]\n"                                   \
+            ld_ins "   q0, q1, [%1, #128]\n"                                   \
+            ld_ins "   q2, q3, [%1, #160]\n"                                   \
+            ld_ins "   q4, q5, [%1, #192]\n"                                   \
+            ld_ins "   q6, q7, [%1, #224]\n"                                   \
+            st_ins "    q0, q1, [%0, #128]\n"                                  \
+            st_ins "    q2, q3, [%0, #160]\n"                                  \
+            st_ins "    q4, q5, [%0, #192]\n"                                  \
+            st_ins "    q6, q7, [%0, #224]\n"                                  \
+            "sub    %2, %2, #2\n"                                              \
+            "add    %1, %1, #256\n"                                            \
+            "add    %0, %0, #256\n"                                            \
+            "b      0b\n"                                                      \
+            "1:\n"                                                             \
+            "cmp    %2, #1\n"                                                  \
+            "b.lt   2f\n"                                                      \
+            ld_ins "   q0, q1, [%1]\n"                                         \
+            ld_ins "   q2, q3, [%1, #32]\n"                                    \
+            ld_ins "   q4, q5, [%1, #64]\n"                                    \
+            ld_ins "   q6, q7, [%1, #96]\n"                                    \
+            st_ins "    q0, q1, [%0]\n"                                        \
+            st_ins "    q2, q3, [%0, #32]\n"                                   \
+            st_ins "    q4, q5, [%0, #64]\n"                                   \
+            st_ins "    q6, q7, [%0, #96]\n"                                   \
+            "sub    %2, %2, #1\n"                                              \
+            "add    %1, %1, #128\n"                                            \
+            "add    %0, %0, #128\n"                                            \
+            "b      1b\n"                                                      \
+            "2:\n"                                                             \
+            "cbz    %3, 5f\n"                                                  \
+            "3:\n"                                                             \
+            "cmp    %3, #32\n"                                                 \
+            "b.lt   5f\n"                                                      \
+            ld_ins "   q0, q1, [%1]\n"                                         \
+            st_ins "    q0, q1, [%0]\n"                                        \
+            "add    %1, %1, #32\n"                                             \
+            "add    %0, %0, #32\n"                                             \
+            "subs   %3, %3, #32\n"                                             \
+            "b.ge   3b\n"                                                      \
+            "5:\n"                                                             \
+            : "+r"(dst), "+r"(src), "+r"(len), "+r"(rem)                       \
+            :                                                                  \
+            : "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7");       \
+    } while (0)
+
 #define memcpy_512B_neon(dst, src, len, rem, ld_ins, st_ins)                   \
     do                                                                         \
     {                                                                          \
