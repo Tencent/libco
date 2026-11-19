@@ -18,6 +18,11 @@
 
 #ifndef __CO_CLOSURE_H__
 #define __CO_CLOSURE_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct stCoClosure_t 
 {
 public:
@@ -92,6 +97,8 @@ public:\
 
 #define co_func_end }
 
-
+#ifdef __cplusplus
+}
 #endif
 
+#endif

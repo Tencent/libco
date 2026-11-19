@@ -20,6 +20,11 @@ available.
 #include "coctx.h"
 #include <stdio.h>
 #include <string.h>
+#include <cstddef>
+
+#if defined(__aarch64__)
+static_assert(offsetof(coctx_t, dregs) == 272, "coctx_t dregs offset must match coctx_swap.S");
+#endif
 
 #define ESP 0
 #define EIP 1
@@ -81,15 +86,57 @@ enum {
   kRSP = 13,
 };
 
+//-------------
+// 64 bit
+// low | regs[0] : x0  |
+//     | regs[1] : x1  |
+//     | regs[2] : x2  |
+//     | regs[3] : x3  |
+//     | regs[4] : x4  |
+//     | regs[5] : x5  |
+//     | regs[6] : x6  |
+//     | regs[7] : x7  |
+//     | regs[8] : x8  |
+//     | regs[9] : x9  |
+//     | regs[10]: x10 |
+//     | regs[11]: x11 |
+//     | regs[12]: x12 |
+//     | regs[13]: x13 |
+//     | regs[14]: x14 |
+//     | regs[15]: x15 |
+//     | regs[16]: x16 |
+//     | regs[17]: x17 |
+//     | regs[18]: x18 |
+//     | regs[19]: x19 |
+//     | regs[20]: x20 |
+//     | regs[21]: x21 |
+//     | regs[22]: x22 |
+//     | regs[23]: x23 |
+//     | regs[24]: x24 |
+//     | regs[25]: x25 |
+//     | regs[26]: x26 |
+//     | regs[27]: x27 |
+//     | regs[28]: x28 |
+//     | regs[29]: x29 |
+//     | regs[30]: x30 |   // ret func addr
+// hig | regs[31]: sp  |
+enum {
+  kARG1 = 0,
+  kARG2 = 1,
+  kRETAddr_ARM64 = 30,
+  kSP_ARM64 = 31,
+};
+
+int coctx_init(coctx_t* ctx) {
+  memset(ctx, 0, sizeof(*ctx));
+  return 0;
+}
+
 // 64 bit
 extern "C" {
 extern void coctx_swap(coctx_t*, coctx_t*) asm("coctx_swap");
 };
 #if defined(__i386__)
-int coctx_init(coctx_t* ctx) {
-  memset(ctx, 0, sizeof(*ctx));
-  return 0;
-}
 int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
   // make room for coctx_param
   char* sp = ctx->ss_sp + ctx->ss_size - sizeof(coctx_param_t);
@@ -123,9 +170,20 @@ int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
   ctx->regs[kRSI] = (char*)s1;
   return 0;
 }
+#elif defined(__aarch64__)
+int coctx_make(coctx_t* ctx, coctx_pfn_t pfn, const void* s, const void* s1) {
+  char* sp = ctx->ss_sp + ctx->ss_size - sizeof(void*);
+  sp = (char*)((unsigned long)sp & -16LL);
 
-int coctx_init(coctx_t* ctx) {
-  memset(ctx, 0, sizeof(*ctx));
+  memset(ctx->regs, 0, sizeof(ctx->regs));
+  memset(ctx->dregs, 0, sizeof(ctx->dregs));
+  void** ret_addr = (void**)(sp);
+  *ret_addr = (void*)pfn;
+
+  ctx->regs[kSP_ARM64] = sp;
+  ctx->regs[kRETAddr_ARM64] = (char*)pfn;
+  ctx->regs[kARG1] = (char*)s;
+  ctx->regs[kARG2] = (char*)s1;
   return 0;
 }
 

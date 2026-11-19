@@ -20,6 +20,10 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
 invoke only once in the whole program
 CoRoutineSetSpecificCallBack(CoRoutineGetSpecificFunc_t pfnGet,CoRoutineSetSpecificFunc_t pfnSet)
@@ -84,3 +88,6 @@ public:\
 \
 static clsRoutineData_routine_##name<name> y;
 
+#ifdef __cplusplus
+}
+#endif
