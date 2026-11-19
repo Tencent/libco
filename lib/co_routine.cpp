@@ -40,6 +40,10 @@
 #include <unistd.h>
 #include <limits.h>
 
+#ifdef __aarch64__
+#include "co_memcpy.h"
+#endif
+
 extern "C"
 {
 	extern void coctx_swap( coctx_t *,coctx_t* ) asm("coctx_swap");
@@ -663,7 +667,11 @@ void save_stack_buffer(stCoRoutine_t* occupy_co)
 	occupy_co->save_buffer = (char*)malloc(len); //malloc buf;
 	occupy_co->save_size = len;
 
+#ifdef __aarch64__
+	co_memcpy_save(occupy_co->save_buffer, occupy_co->stack_sp, len);
+#else
 	memcpy(occupy_co->save_buffer, occupy_co->stack_sp, len);
+#endif
 }
 
 void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
@@ -714,7 +722,11 @@ void co_swap(stCoRoutine_t* curr, stCoRoutine_t* pending_co)
 		//resume stack buffer
 		if (update_pending_co->save_buffer && update_pending_co->save_size > 0)
 		{
+#ifdef __aarch64__
+			co_memcpy_swap(update_pending_co->stack_sp, update_pending_co->save_buffer, update_pending_co->save_size);
+#else
 			memcpy(update_pending_co->stack_sp, update_pending_co->save_buffer, update_pending_co->save_size);
+#endif
 		}
 	}
 }
